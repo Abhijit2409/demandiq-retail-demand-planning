@@ -1,0 +1,9 @@
+region_id,country,region_name,proxy_city,latitude,longitude,timezone,historical_source,model,start_date,end_date,provenance
+CA_PNW,Canada,British Columbia / Pacific Coast,"Vancouver, BC",49.2827,-123.1207,America/Vancouver,Open-Meteo Historical Weather API,ERA5,2021-07-01,2026-06-30,PUBLIC/OBSERVED-REANALYSIS
+CA_PRAIRIE,Canada,Alberta / Prairies,"Calgary, AB",51.0447,-114.0719,America/Edmonton,Open-Meteo Historical Weather API,ERA5,2021-07-01,2026-06-30,PUBLIC/OBSERVED-REANALYSIS
+CA_ON,Canada,Ontario,"Toronto, ON",43.6532,-79.3832,America/Toronto,Open-Meteo Historical Weather API,ERA5,2021-07-01,2026-06-30,PUBLIC/OBSERVED-REANALYSIS
+CA_QC,Canada,Quebec,"Montreal, QC",45.5017,-73.5673,America/Toronto,Open-Meteo Historical Weather API,ERA5,2021-07-01,2026-06-30,PUBLIC/OBSERVED-REANALYSIS
+US_PNW,United States,Pacific Northwest,"Seattle, WA",47.6062,-122.3321,America/Los_Angeles,Open-Meteo Historical Weather API,ERA5,2021-07-01,2026-06-30,PUBLIC/OBSERVED-REANALYSIS
+US_NE,United States,Northeast,"New York, NY",40.7128,-74.006,America/New_York,Open-Meteo Historical Weather API,ERA5,2021-07-01,2026-06-30,PUBLIC/OBSERVED-REANALYSIS
+US_MTN,United States,Mountain West,"Denver, CO",39.7392,-104.9903,America/Denver,Open-Meteo Historical Weather API,ERA5,2021-07-01,2026-06-30,PUBLIC/OBSERVED-REANALYSIS
+US_WEST,United States,Mild West / California,"San Francisco, CA",37.7749,-122.4194,America/Los_Angeles,Open-Meteo Historical Weather API,ERA5,2021-07-01,2026-06-30,PUBLIC/OBSERVED-REANALYSIS

@@ -1,0 +1,21 @@
+﻿check,target,actual,status
+row_count,21060,21060,PASS
+partial_constraint_rows,>0,1235,PASS
+stockout_rows,>0,677,PASS
+flag_overlap_rows,0,0,PASS
+all_censored_rows_union,1912,1912,PASS
+training_uses_uncensored_rows_only,YES,YES,PASS
+regression_uses_prior_plan_years_only,YES,YES,PASS
+true_demand_used_as_feature,NO,NO,PASS
+audit_hidden_used_as_feature,NO,NO,PASS
+forbidden_feature_hits,0,0,PASS
+selected_method,lowest censored-row WAPE,Seasonal_Profile_Imputation,PASS
+Seasonal_Profile_Imputation_censored_WAPE,reported,26.08%,PASS
+Seasonal_Profile_Imputation_censored_Bias,reported,-2.61%,PASS
+Seasonal_Profile_Imputation_recovery,reported,95.68%,PASS
+Regression_Imputation_censored_WAPE,reported,27.13%,PASS
+Regression_Imputation_censored_Bias,reported,-21.32%,PASS
+Regression_Imputation_recovery,reported,64.65%,PASS
+Naive_InStock_GrossUp_censored_WAPE,reported,47.61%,PASS
+Naive_InStock_GrossUp_censored_Bias,reported,-20.98%,PASS
+Naive_InStock_GrossUp_recovery,reported,65.20%,PASS

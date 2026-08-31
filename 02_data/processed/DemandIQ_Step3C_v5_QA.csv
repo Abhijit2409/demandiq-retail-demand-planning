@@ -1,0 +1,55 @@
+metric,target,actual,status,note
+rows,"21,060","21,060",PASS,
+portfolio fill rate,91-93%,92.46%,PASS,
+Oct-Jan fill rate,88-92%,88.97%,PASS,"peak scarcity now driven by forecast error, not calendar exhaustion"
+Apr-Jun fill rate,96-98%,97.54%,PASS,
+Jul fill rate,does not collapse (>90%),100.00%,PASS,July opening receipt added; v4 collapsed to 47%
+fill rate Jan,-,73.38%,INFO,
+fill rate Feb,-,83.91%,INFO,
+fill rate Mar,-,91.66%,INFO,
+fill rate Apr,-,96.10%,INFO,
+fill rate May,-,98.60%,INFO,
+fill rate Jun,-,98.01%,INFO,
+fill rate Jul,-,100.00%,INFO,
+fill rate Aug,-,99.27%,INFO,
+fill rate Sep,-,99.52%,INFO,
+fill rate Oct,-,99.73%,INFO,
+fill rate Nov,-,98.47%,INFO,
+fill rate Dec,-,84.21%,INFO,
+lost demand Sep-Jan share,60-70%,66.32%,PASS,
+lost demand share Jan,-,36.57%,INFO,
+lost demand share Feb,-,18.31%,INFO,
+lost demand share Mar,-,8.66%,INFO,
+lost demand share Apr,-,3.44%,INFO,
+lost demand share May,-,1.20%,INFO,
+lost demand share Jun,-,1.49%,INFO,
+lost demand share Jul,-,0.00%,INFO,
+lost demand share Aug,-,0.58%,INFO,
+lost demand share Sep,-,0.52%,INFO,
+lost demand share Oct,-,0.37%,INFO,
+lost demand share Nov,-,2.36%,INFO,
+lost demand share Dec,-,26.49%,INFO,
+full stockout rows,>0 and distinct from constrained,677 (3.21%),PASS,in_stock_days == 0
+partially constrained rows,>0,"1,235 (5.86%)",PASS,1 <= in_stock_days <= 6
+flags mutually exclusive,yes,yes,PASS,
+stockout rate Nov-Jan,>0 (meaningful peak stockouts),8.32%,PASS,
+chase units ordered,>0,"36,933",PASS,trigger: trailing 4wk shipped vs plan >= +15%; 10-week arrival lag
+rows triggering chase,>0,"1,045",PASS,
+series using chase,>0,81 of 81,PASS,
+chase share of seasonal commitment,capped at 8%,4.85%,PASS,
+"corr(beginning_inventory, true_demand)",<0.70,0.518,PASS,inventory must not be a function of current-week demand
+naive in-stock-days recovery,<100% (imperfect),38.47%,PASS,"Step 4A must beat this with imputation, not gross-up"
+raw sales understatement vs true demand,-,-7.54%,INFO,
+understatement after naive cleansing,-,-4.64%,INFO,
+ending inventory at final week,>0,"9,563",PASS,aged stock available for Step 3D excess/obsolescence bands
+mean ending inventory per row,-,123.5,INFO,
+sellable returns restocked,>0,"32,022",PASS,delay 2/1/3 weeks for ECOM/RETAIL/WHOLESALE
+non-sellable returns,>0,"6,594",PASS,
+seasonal receipts,-,"354,621",INFO,"4 commitments: Jul/Aug/Sep/Oct, October split-delivered in 3 tranches"
+replenishment receipts,-,"334,538",INFO,throttled to 1% of commitment per event inside the Oct-Jan peak block
+chase receipts landed,-,"36,933",INFO,
+fill rate PY2022,-,95.01%,INFO,
+fill rate PY2023,-,93.07%,INFO,
+fill rate PY2024,-,92.39%,INFO,
+fill rate PY2025,-,91.06%,INFO,
+fill rate PY2026,-,91.28%,INFO,

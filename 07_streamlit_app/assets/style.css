@@ -1,0 +1,239 @@
+/* ================================================================
+   DemandIQ — premium outdoor demand-planning control tower.
+   Presentation overhaul: wide layout, readable type, no truncation.
+   Minimal, technical, executive. Generic outdoor identity (no brand
+   trade dress).
+   ================================================================ */
+
+:root {
+    --ink: #1F2A30;
+    --ink-2: #34434C;
+    --subtle: #5B6B73;
+    --faint: #8A9BA5;
+    --stone: #F4F2EE;
+    --surface: #FFFFFF;
+    --line: #E4E0D8;
+    --line-2: #EDEAE3;
+    --p1: #C0603A;        /* clay — urgent (ESCALATE) */
+    --p1-soft: rgba(192,96,58,0.10);
+    --p2: #3F6C8E;        /* slate — protect */
+    --p2-soft: rgba(63,108,142,0.10);
+    --healthy: #4F7A5B;   /* moss — healthy */
+    --healthy-soft: rgba(79,122,91,0.12);
+    --font: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* ---- Global type + width ---------------------------------------- */
+html, body, .stApp, [data-testid="stAppViewContainer"] {
+    font-family: var(--font);
+    color: var(--ink);
+    font-size: 16px;
+}
+
+.block-container {
+    max-width: 1520px;
+    padding-top: 1.6rem;
+    padding-bottom: 4rem;
+    padding-left: 2.6rem;
+    padding-right: 2.6rem;
+}
+
+/* Remove Streamlit chrome that reads as "generic demo" */
+[data-testid="stToolbar"] { display: none; }
+footer { visibility: hidden; height: 0; }
+[data-testid="stDecoration"] { display: none; }
+
+/* Markdown / body text sizing */
+[data-testid="stMarkdownContainer"] p { font-size: 1rem; line-height: 1.55; }
+[data-testid="stMarkdownContainer"] li { font-size: 1rem; line-height: 1.55; }
+.stCaption, [data-testid="stCaptionContainer"] p { font-size: 0.82rem !important; color: var(--subtle); }
+
+h1 { color: var(--ink); letter-spacing: -0.02em; font-weight: 700; }
+h2 { color: var(--ink); letter-spacing: -0.01em; }
+h3 { color: var(--ink); }
+
+/* ---- Page header lockup ----------------------------------------- */
+.diq-eyebrow {
+    font-size: 0.78rem; font-weight: 700; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--p2); margin-bottom: 0.2rem;
+}
+.diq-h1 { font-size: 2.25rem; font-weight: 700; color: var(--ink); margin: 0 0 0.2rem 0; letter-spacing: -0.02em; }
+.diq-question { font-size: 1.35rem; font-weight: 600; color: var(--ink-2); margin: 0 0 0.35rem 0; }
+.diq-insight { font-size: 1.02rem; color: var(--subtle); margin: 0; max-width: 1050px; line-height: 1.55; }
+.diq-horizon { font-size: 0.95rem; color: var(--subtle); font-variant-numeric: tabular-nums; }
+.diq-rule { height: 1px; background: var(--line); border: 0; margin: 1.1rem 0 1.3rem 0; }
+
+/* ---- Hero (Page 1) ---------------------------------------------- */
+.diq-hero-title { font-size: 2.7rem; font-weight: 800; letter-spacing: -0.025em; color: var(--ink); margin: 0; }
+.diq-hero-sub { font-size: 1.4rem; font-weight: 600; color: var(--ink-2); margin: 0.1rem 0 0.5rem 0; }
+.diq-hero-desc { font-size: 1.05rem; color: var(--subtle); max-width: 1000px; line-height: 1.6; margin: 0 0 0.6rem 0; }
+.diq-hero-horizon {
+    display: inline-block; background: var(--stone); border: 1px solid var(--line);
+    border-radius: 8px; padding: 0.4rem 0.85rem; font-size: 0.95rem; color: var(--ink-2);
+    font-variant-numeric: tabular-nums;
+}
+.diq-hero-horizon b { color: var(--ink); }
+
+/* ---- KPI grid (responsive, no truncation) ----------------------- */
+.diq-kpi-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 16px; margin: 0.2rem 0 0.4rem 0;
+}
+.diq-kpi {
+    background: var(--surface); border: 1px solid var(--line); border-top: 4px solid var(--faint);
+    border-radius: 12px; padding: 1.05rem 1.15rem; min-height: 118px;
+    box-shadow: 0 1px 2px rgba(31,42,48,0.04);
+}
+.diq-kpi.p1 { border-top-color: var(--p1); }
+.diq-kpi.p2 { border-top-color: var(--p2); }
+.diq-kpi.ok { border-top-color: var(--healthy); }
+.diq-kpi-label {
+    font-size: 0.8rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--subtle); margin-bottom: 0.35rem; white-space: normal; overflow: visible;
+    line-height: 1.25;
+}
+.diq-kpi-value {
+    font-size: 2.1rem; font-weight: 750; color: var(--ink); line-height: 1.1;
+    font-variant-numeric: tabular-nums; white-space: normal;
+}
+.diq-kpi-sub { font-size: 0.86rem; color: var(--faint); margin-top: 0.3rem; line-height: 1.35; }
+.diq-kpi-sub.up { color: var(--healthy); font-weight: 600; }
+.diq-kpi-sub.warn { color: var(--p1); font-weight: 600; }
+
+/* ---- Status banner (Page 1) ------------------------------------- */
+.diq-banner {
+    border-radius: 14px; padding: 1.15rem 1.3rem; border: 1px solid var(--line);
+    border-left: 7px solid var(--p1);
+    background: linear-gradient(100deg, rgba(192,96,58,0.08), rgba(192,96,58,0.015));
+}
+.diq-banner .flag {
+    font-size: 0.85rem; font-weight: 800; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--p1);
+}
+.diq-banner .headline { font-size: 1.28rem; font-weight: 700; color: var(--ink); margin: 0.2rem 0 0.7rem 0; }
+.diq-banner-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px;
+}
+.diq-banner-cell { border-left: 3px solid var(--line); padding-left: 0.7rem; }
+.diq-banner-cell .k { font-size: 0.74rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--subtle); }
+.diq-banner-cell .v { font-size: 1.02rem; font-weight: 650; color: var(--ink); margin-top: 0.1rem; }
+
+/* ---- Decision cards (P1) ---------------------------------------- */
+.diq-decision-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 16px; }
+.diq-decision {
+    background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--p1);
+    border-radius: 12px; padding: 1.05rem 1.15rem;
+}
+.diq-decision .top { display: flex; align-items: center; gap: 0.55rem; margin-bottom: 0.15rem; }
+.diq-decision .name { font-size: 1.12rem; font-weight: 700; color: var(--ink); }
+.diq-decision .risk { font-size: 0.9rem; color: var(--p1); font-weight: 650; margin-bottom: 0.65rem; }
+.diq-decision .row { display: flex; justify-content: space-between; padding: 0.28rem 0; border-top: 1px solid var(--line-2); font-size: 0.96rem; }
+.diq-decision .row span { color: var(--subtle); }
+.diq-decision .row b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+/* ---- Chips ------------------------------------------------------ */
+.diq-chip {
+    display: inline-block; padding: 0.16rem 0.6rem; border-radius: 999px;
+    font-size: 0.8rem; font-weight: 700; letter-spacing: 0.03em;
+}
+.diq-chip.p1 { background: var(--p1-soft); color: var(--p1); }
+.diq-chip.p2 { background: var(--p2-soft); color: var(--p2); }
+.diq-chip.ok { background: var(--healthy-soft); color: var(--healthy); }
+
+/* ---- Selected-series header (Page 4) ---------------------------- */
+.diq-series-header {
+    background: var(--stone); border: 1px solid var(--line); border-left: 6px solid var(--p2);
+    border-radius: 12px; padding: 1.0rem 1.2rem; margin-bottom: 0.4rem;
+}
+.diq-series-header.p1 { border-left-color: var(--p1); }
+.diq-series-header .name { font-size: 1.5rem; font-weight: 750; color: var(--ink); }
+.diq-series-header .tags { margin-top: 0.35rem; font-size: 0.98rem; color: var(--subtle); }
+
+/* ---- Callouts --------------------------------------------------- */
+.diq-callout { border-radius: 12px; padding: 1.0rem 1.15rem; margin: 0.5rem 0; border: 1px solid var(--line); }
+.diq-callout.why { background: var(--p1-soft); border-color: rgba(192,96,58,0.3); }
+.diq-callout.boundary { background: var(--p2-soft); border-color: rgba(63,108,142,0.3); }
+.diq-callout .t { font-size: 0.8rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 0.35rem; }
+.diq-callout.why .t { color: var(--p1); }
+.diq-callout.boundary .t { color: var(--p2); }
+.diq-callout .b { font-size: 1.0rem; color: var(--ink-2); line-height: 1.55; }
+
+/* ---- Notes ------------------------------------------------------ */
+.diq-note {
+    font-size: 0.92rem; color: var(--subtle); line-height: 1.5;
+    border-left: 3px solid var(--line); padding-left: 0.8rem; margin: 0.5rem 0;
+}
+
+/* ---- Methodology journey (Page 5) ------------------------------- */
+.diq-journey { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; margin: 0.3rem 0 0.6rem 0; }
+.diq-journey-step {
+    flex: 1 1 150px; background: var(--surface); border: 1px solid var(--line);
+    border-top: 4px solid var(--p2); border-radius: 10px; padding: 0.8rem 0.9rem; min-width: 140px;
+}
+.diq-journey-step .n {
+    display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px;
+    border-radius: 50%; background: var(--p2-soft); color: var(--p2); font-weight: 700; font-size: 0.85rem;
+}
+.diq-journey-step .t { margin-top: 0.4rem; font-size: 0.98rem; font-weight: 650; color: var(--ink); line-height: 1.25; }
+.diq-journey-arrow { align-self: center; color: var(--faint); font-size: 1.3rem; }
+
+/* ---- Weather horizon timeline (Page 5) -------------------------- */
+.diq-timeline { display: flex; gap: 8px; margin: 0.4rem 0 0.6rem 0; }
+.diq-tl-seg { border-radius: 10px; padding: 0.85rem 1.0rem; color: var(--ink); }
+.diq-tl-seg .lab { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.diq-tl-seg .val { font-size: 1.0rem; font-weight: 650; margin-top: 0.15rem; }
+.diq-tl-nowcast { flex: 0 0 24%; background: var(--p1-soft); border: 1px solid rgba(192,96,58,0.3); }
+.diq-tl-nowcast .lab { color: var(--p1); }
+.diq-tl-scenario { flex: 1; background: var(--p2-soft); border: 1px solid rgba(63,108,142,0.3); }
+.diq-tl-scenario .lab { color: var(--p2); }
+
+/* ---- Provenance / policy / limitation cards --------------------- */
+.diq-info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.diq-info-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 1.0rem 1.15rem; }
+.diq-info-card.public { border-top: 4px solid var(--healthy); }
+.diq-info-card.synthetic { border-top: 4px solid var(--p2); }
+.diq-info-card.derived { border-top: 4px solid var(--p1); }
+.diq-info-card .h { font-size: 0.98rem; font-weight: 800; letter-spacing: 0.06em; color: var(--ink); margin-bottom: 0.35rem; }
+.diq-info-card .b { font-size: 0.94rem; color: var(--subtle); line-height: 1.5; }
+
+/* ---- st.metric safety net (wrap labels, no ellipsis) ------------ */
+div[data-testid="stMetric"] {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    padding: 0.9rem 1.05rem;
+}
+div[data-testid="stMetricLabel"] { white-space: normal !important; overflow: visible !important; }
+div[data-testid="stMetricLabel"] p {
+    font-size: 0.82rem !important; font-weight: 700; letter-spacing: 0.04em;
+    text-transform: uppercase; color: var(--subtle); white-space: normal !important;
+    overflow: visible !important; text-overflow: clip !important; line-height: 1.25;
+}
+div[data-testid="stMetricValue"] {
+    color: var(--ink); font-variant-numeric: tabular-nums; font-size: 1.9rem !important;
+    white-space: normal !important; overflow: visible !important;
+}
+div[data-testid="stMetricValue"] > div { overflow: visible !important; text-overflow: clip !important; }
+
+/* ---- Dataframe readability -------------------------------------- */
+[data-testid="stDataFrame"] { font-size: 0.95rem; }
+[data-testid="stDataFrame"] [role="columnheader"] { font-weight: 700; }
+
+/* ---- Tabs ------------------------------------------------------- */
+button[data-baseweb="tab"] { font-size: 1.0rem !important; font-weight: 600; padding: 0.4rem 0.2rem; }
+button[data-baseweb="tab"][aria-selected="true"] { color: var(--p1) !important; }
+[data-baseweb="tab-highlight"] { background-color: var(--p1) !important; }
+
+/* ---- Sidebar ---------------------------------------------------- */
+[data-testid="stSidebar"] { background: #FBFAF8; border-right: 1px solid var(--line); }
+[data-testid="stSidebar"] .block-container { padding-top: 1rem; }
+.diq-brand-sub { font-size: 0.78rem; color: var(--subtle); text-transform: uppercase; letter-spacing: 0.09em; margin-top: -0.4rem; }
+.diq-workflow {
+    font-size: 0.82rem; color: var(--p2); font-weight: 650; letter-spacing: 0.02em;
+    background: var(--p2-soft); border-radius: 8px; padding: 0.4rem 0.6rem; margin: 0.2rem 0 0.4rem 0;
+}
+[data-testid="stSidebarNav"] { font-size: 1.02rem; }
+[data-testid="stSidebarNav"] span { font-size: 1.0rem; }
+.diq-footer { font-size: 0.78rem; color: var(--faint); line-height: 1.45; }
+
+/* ---- Section label chip ----------------------------------------- */
+.diq-section { font-size: 1.25rem; font-weight: 700; color: var(--ink); margin: 0.4rem 0 0.3rem 0; }
+.diq-section-sub { font-size: 0.92rem; color: var(--subtle); margin: 0 0 0.4rem 0; }

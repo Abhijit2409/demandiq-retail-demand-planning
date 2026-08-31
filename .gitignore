@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Secrets
+.env
+.streamlit/secrets.toml
+
+# IDE
+.vscode/
+.idea/
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Logs / temporary files
+*.log
+*.tmp
+
+# AI working instructions
+SKILL.md
+
+# Archives
+archive/
+old_versions/
+
+# Generated weather cache and backups
+02_data/weather/cache/
+*_8region_backup.csv
+
+# Future project extensions
+06_docs/DemandIQ_Step7A_New_Product_Launch_Design.md
