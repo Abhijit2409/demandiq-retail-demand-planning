@@ -1,0 +1,4 @@
+threshold_pp,would_trigger,first_trigger_checkpoint,first_trigger_week,trigger_channel,mix_dev_at_trigger_pp,reserve_available_units,indicative_deployable_units,reserve_transfer_lead_weeks,plausibly_arrives_before_w13_stockout,label,notes
+5.0,YES,W1,1,ECOM,5.4,991.1,158.8,2,YES,COUNTERFACTUAL POLICY SENSITIVITY,ECOM mix +5.4pp >= 5.0pp at W1; idle reserve 991u could indicatively cover the ~159u W13 ECOM shortfall; ~2-wk lead -> arrive ~W3. NOT a claim of optimality/causality or that all lost demand is prevented.
+6.5,NO,,,,,991.1,,2,,COUNTERFACTUAL POLICY SENSITIVITY,max ECOM mix deviation on frozen path (5.4pp) never reaches 6.5pp; rule would not fire. (8.0pp = frozen historical rule.)
+8.0,NO,,,,,991.1,,2,,COUNTERFACTUAL POLICY SENSITIVITY,max ECOM mix deviation on frozen path (5.4pp) never reaches 8.0pp; rule would not fire. (8.0pp = frozen historical rule.)

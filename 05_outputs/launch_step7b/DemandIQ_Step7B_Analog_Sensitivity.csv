@@ -1,0 +1,6 @@
+scenario,w_functional,w_seasonal_fit,w_price,w_weather,w_scale,w_channel,rank_order,top_analog,top_changed_vs_base,blend_APS_IMH_remains_defensible
+A_base,0.3,0.25,0.15,0.15,0.1,0.05,APS-001(0.679) > CTS-001(0.531) > IMH-001(0.448),APS-001,False,True
+B_higher_functional,0.4,0.2143,0.1286,0.1286,0.0857,0.0429,APS-001(0.696) > CTS-001(0.555) > IMH-001(0.482),APS-001,False,True
+C_lower_functional,0.2,0.2857,0.1714,0.1714,0.1143,0.0571,APS-001(0.661) > CTS-001(0.507) > IMH-001(0.413),APS-001,False,True
+D_higher_seasonal,0.26,0.35,0.13,0.13,0.0867,0.0433,APS-001(0.628) > CTS-001(0.469) > IMH-001(0.419),APS-001,False,True
+E_higher_price,0.2647,0.2206,0.25,0.1324,0.0882,0.0441,APS-001(0.702) > CTS-001(0.557) > IMH-001(0.410),APS-001,False,True

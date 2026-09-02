@@ -41,9 +41,10 @@ PAGES = [
      "icon": "✅", "group": "Planning", "url": "decision-queue", "filters": True},
     {"module": "5_forecast_governance.py", "title": "05 · Forecast & Governance",
      "icon": "📚", "group": "Evidence", "url": "forecast-governance", "filters": False},
-    # FUTURE — plug the New Product Launch Planning workflow in here:
-    # {"module": "6_launch_planning.py", "title": "06 · New Product Launch Planning",
-    #  "icon": "🚀", "group": "Launch Planning", "url": "launch-planning", "filters": False},
+    # New-product launch planning (Step 7G). HIS-only page with its own in-page
+    # Channel control, so it does not use the shared SKU/Channel sidebar filters.
+    {"module": "6_launch_planning.py", "title": "06 · New Product Launch Planning",
+     "icon": "🚀", "group": "Launch Planning", "url": "launch-planning", "filters": False},
 ]
 
 

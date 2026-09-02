@@ -1,0 +1,7 @@
+forecast_version,forecast_as_of,remaining_horizon_units,change_vs_original_units,change_vs_original_pct,reason,evidence_available
+ORIGINAL_V3_PLAN,2026-08-24,7577.1,0.0,0.0,approved launch plan (V3 x Step7C weekly shape),none (pre-launch)
+W1_REFORECAST,W1,7464.8,-112.3,-1.48,shrinkage w_actual=0.2 toward observed attainment 93.6%,1 obs weeks
+W2_REFORECAST,W2,7310.3,-266.8,-3.52,shrinkage w_actual=0.333 toward observed attainment 91.0%,2 obs weeks
+W4_REFORECAST,W4,7030.4,-546.7,-7.22,shrinkage w_actual=0.5 toward observed attainment 87.7%,4 obs weeks
+W8_REFORECAST,W8,6943.1,-634.0,-8.37,shrinkage w_actual=0.667 toward observed attainment 89.8%,8 obs weeks
+W13_REFORECAST,W13,6650.3,-926.8,-12.23,shrinkage w_actual=0.765 toward observed attainment 87.8%,13 obs weeks
