@@ -17,6 +17,8 @@ def render_detail_panel(row, weekly_df):
     sku, chan = row["sku_id"], row["channel_id"]
     label = fmt.series_label(sku, chan)
     is_p1 = row["risk_type"] == "WEEKLY_SERVICE_RISK"
+    risk = row["risk_type"]
+    missed = int(row["weeks_below_service_target"]) > 0
 
     cards.series_header(row)
 
@@ -28,11 +30,23 @@ def render_detail_panel(row, weekly_df):
             f'<b>{fmt.pct(row["min_weekly_base_fill_rate"])}</b> fill in its worst week '
             f'({fmt.date_long(row["worst_base_service_week"])}).</div>',
             unsafe_allow_html=True)
-    else:
+    elif risk == "LOW_COVERAGE_RISK":
         st.markdown(
             f'<div class="diq-note">Weekly service holds, but ending coverage is '
             f'<b>{fmt.wos(row["base_final_wos"])}</b> — below the 2.5-week safety-stock '
             f'policy, so the series is protected rather than escalated.</div>',
+            unsafe_allow_html=True)
+    elif risk == "SEVERE_SCENARIO_RISK":
+        st.markdown(
+            f'<div class="diq-note">The base case holds with <b>{fmt.wos(row["base_final_wos"])}</b> '
+            f'of ending cover, but the severe-weather scenario takes cover below the 2.5-week '
+            f'policy, so the series is protected.</div>',
+            unsafe_allow_html=True)
+    else:
+        st.markdown(
+            f'<div class="diq-note">Weekly service holds and ending coverage is '
+            f'<b>{fmt.wos(row["base_final_wos"])}</b>, at or above the 2.5-week policy. '
+            f'No action this cycle.</div>',
             unsafe_allow_html=True)
 
     # ---- Wide responsive KPI grid (no narrow stacking) ----
@@ -40,7 +54,8 @@ def render_detail_panel(row, weekly_df):
         {"label": "13W Base Fill", "value": fmt.pct(row["base_13w_fill_rate"])},
         {"label": "Worst Weekly Fill", "value": fmt.pct(row["min_weekly_base_fill_rate"]),
          "accent": "p1" if is_p1 else ""},
-        {"label": "Worst Week", "value": fmt.date_short(row["worst_base_service_week"])},
+        {"label": "Worst Week",
+         "value": fmt.date_short(row["worst_base_service_week"]) if missed else "—"},
         {"label": "Weekly Misses", "value": int(row["weeks_below_service_target"])},
         {"label": "Ending WOS", "value": fmt.wos(row["base_final_wos"])},
         {"label": "Safety-Stock Gap", "value": fmt.units(row.get("base_safety_gap_units"))},
@@ -70,8 +85,13 @@ def render_detail_panel(row, weekly_df):
                 "P1 means urgent S&amp;OE review. Automatic chase is <b>not</b> released "
                 "because supplier / transfer lead-time feasibility is outside the current "
                 "model.")
-        else:
+        elif row["planner_action"] == "PROTECT":
             cards.callout(
                 "boundary", "Protection stance",
                 "Protect ending inventory and retain the contingency chase option. It is "
                 "<b>not</b> released simply to restore the safety-stock buffer.")
+        else:
+            cards.callout(
+                "boundary", "Hold stance",
+                "No protection or chase is needed in the base case. Recheck if weekly sales "
+                "run ahead of the forecast.")

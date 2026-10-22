@@ -1,0 +1,27 @@
+metric,value,unit,basis
+In-transit replenishment counted in the 13-week supply,6512.172,units,PLANNER_VIEW
+Last in-transit arrival,2026-07-13,date,PLANNER_VIEW
+"Replenishment proxy series WAPE, worst backtest year",29.48,%,PLANNER_VIEW
+"Replenishment proxy portfolio error, worst backtest year",24.178,%,PLANNER_VIEW
+v1 published: ESCALATE,3,series,PLANNER_VIEW
+v1 published: PROTECT,6,series,PLANNER_VIEW
+Step 5 corrected: ESCALATE,0,series,PLANNER_VIEW
+Step 5 corrected: PROTECT,7,series,PLANNER_VIEW
+Step 5 corrected: PROTECT on low coverage,6,series,PLANNER_VIEW
+Step 5 corrected: PROTECT on the severe-weather test,1,series,PLANNER_VIEW
+Step 5 corrected: HOLD,2,series,PLANNER_VIEW
+Step 8 queue: ESCALATE,0,series,PLANNER_VIEW
+Step 8 queue: WATCH,1,series,PLANNER_VIEW
+Step 8 queue: PROTECT,5,series,PLANNER_VIEW
+Step 8 queue: NO ACTION,3,series,PLANNER_VIEW
+Series where Step 5 and Step 8 agree,7,of 9,PLANNER_VIEW
+"Largest cover difference, Step 5 vs Step 8",0.015,weeks,PLANNER_VIEW
+Combined queue: ESCALATE,0,series,PLANNER_VIEW
+Combined queue: WATCH,1,series,PLANNER_VIEW
+Combined queue: PROTECT,6,series,PLANNER_VIEW
+Combined queue: NO ACTION,2,series,PLANNER_VIEW
+Replenishment stress applied (worst backtest series WAPE),29.5,%,PLANNER_VIEW
+Series whose Step 5 tier changes under a stress,3,of 9,PLANNER_VIEW
+Series whose tier changes under a stress (list),"CTS-001 ECOM, CTS-001 WHOLESALE, IMH-001 RETAIL",series,PLANNER_VIEW
+Series escalated (P1) under any stress,0,of 9,PLANNER_VIEW
+Most replenishment any v1 escalation needs to clear,30.038,% of proxy,PLANNER_VIEW

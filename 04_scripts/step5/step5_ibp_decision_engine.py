@@ -1,3 +1,4 @@
+import argparse
 import pandas as pd
 import numpy as np
 from pathlib import Path
@@ -72,9 +73,37 @@ from pathlib import Path
 # 1. PROJECT PATHS
 # ============================================================
 
-PROJECT_DIR = Path(
-    r"D:\Downloads\DemandIQ"
+# Repository root: this file lives in 04_scripts/step5/.
+PROJECT_DIR = Path(__file__).resolve().parents[2]
+
+
+# Supply view used for forward committed receipts (section 19).
+#   seasonal_plus_replenishment (default, v2): seasonal drops plus
+#       replenishment already in transit at the forecast origin.
+#   seasonal_only (v1): seasonal drops only. Reproduces the plan as
+#       first published, for audit; superseded.
+SUPPLY_VIEWS = {
+    "seasonal_plus_replenishment": "SEASONAL_DROPS_PLUS_IN_TRANSIT_REPLENISHMENT",
+    "seasonal_only": "SEASONAL_DROPS_ONLY",
+}
+
+parser = argparse.ArgumentParser(
+    description="DemandIQ Step 5: inventory, supply and IBP decision engine."
 )
+parser.add_argument(
+    "--supply-view",
+    choices=sorted(SUPPLY_VIEWS),
+    default="seasonal_plus_replenishment",
+    help="Forward supply view (default: seasonal_plus_replenishment).",
+)
+parser.add_argument(
+    "--output-dir",
+    type=Path,
+    default=PROJECT_DIR / "05_outputs" / "ibp_decisions",
+    help="Folder for DemandIQ_Step5_IBP_Decision_Plan.csv.",
+)
+ARGS = parser.parse_args()
+SUPPLY_VIEW = ARGS.supply_view
 
 
 FORECAST_FILE = (
@@ -95,11 +124,7 @@ STEP3D_FILENAME = (
 )
 
 
-OUTPUT_DIR = (
-    PROJECT_DIR
-    / "05_outputs"
-    / "ibp_decisions"
-)
+OUTPUT_DIR = ARGS.output_dir
 
 
 OUTPUT_DIR.mkdir(
@@ -728,6 +753,14 @@ chase_receipt_col = choose_column(
 )
 
 
+replenishment_receipt_col = choose_column(
+    inventory,
+    ["replenishment_receipt_units", "replen_receipt_units"],
+    required=(SUPPLY_VIEW == "seasonal_plus_replenishment"),
+    label="Historical replenishment receipt",
+)
+
+
 historical_ship_col = choose_column(
 
     inventory,
@@ -1256,6 +1289,16 @@ print(
 )
 
 
+# Historical replenishment receipts (DC replenishment, 3-week lead).
+# Kept separate from the seasonal drops so the forward proxy in
+# section 19 can time them on their own lead time.
+inventory["_replenishment_receipt_units"] = (
+    inventory[replenishment_receipt_col].astype(float)
+    if replenishment_receipt_col is not None
+    else 0.0
+)
+
+
 # ============================================================
 # 17. CURRENT OPENING INVENTORY
 # ============================================================
@@ -1422,140 +1465,102 @@ else:
 # ============================================================
 # 19. FORWARD COMMITTED RECEIPT PROXY
 #
-# Prior-year seasonal receipt pattern shifted 52 weeks
-# + frozen structural SKU growth.
+# Seasonal drops (v1 and v2): last year's seasonal receipts in
+# the same week, shifted 52 weeks, plus frozen SKU growth.
+#
+# Replenishment pipeline (v2): last year's replenishment receipts,
+# shifted and grown the same way. Step 3A policy: routine DC
+# replenishment is ordered only from plan week 20, on a 3-week
+# lead time. Any replenishment landing in this 13-week window was
+# therefore ordered before the plan date: it is in transit at the
+# forecast origin and arrives in weeks 1-3, before the demand
+# weeks it serves. The check below enforces that timing.
+#
+# v1 counted the seasonal drops only, so its August-September
+# shortfalls left this pipeline out of supply.
 # ============================================================
 
-prior_receipts = (
+REPLENISHMENT_LEAD_WEEKS = 3  # Step 3A replen_lead_weeks
+REPLENISHMENT_ORDER_START_PLAN_WEEK = 20  # Step 3A replen_start_week
 
+prior_receipts = (
     inventory
-
-    .groupby(
-        [
-            inventory_date_col,
-            "sku_id",
-            "channel_id"
-        ],
-
-        as_index=False
-
-    )
-
+    .groupby([inventory_date_col, "sku_id", "channel_id"], as_index=False)
     .agg(
-
-        prior_year_receipt_units=(
-            "_base_receipt_units",
-            "sum"
-        )
-
+        prior_year_receipt_units=("_base_receipt_units", "sum"),
+        prior_year_replenishment_units=("_replenishment_receipt_units", "sum"),
     )
-
 )
 
-
-prior_receipts[
-    "forecast_week_start"
-] = (
-
-    prior_receipts[
-        inventory_date_col
-    ]
-
-    + pd.Timedelta(
-        weeks=52
-    )
-
+prior_receipts["forecast_week_start"] = (
+    prior_receipts[inventory_date_col] + pd.Timedelta(weeks=52)
 )
 
+prior_receipts = prior_receipts[
+    prior_receipts["forecast_week_start"].between(FORECAST_START, FORECAST_END)
+].copy()
 
-prior_receipts = (
+prior_receipts["sku_growth_rate"] = prior_receipts["sku_id"].map(SKU_GROWTH)
 
-    prior_receipts[
-        prior_receipts[
-            "forecast_week_start"
-        ]
-        .between(
-            FORECAST_START,
-            FORECAST_END
-        )
-    ]
+if prior_receipts["sku_growth_rate"].isna().any():
+    raise RuntimeError("Missing SKU growth assumption.")
 
-    .copy()
+growth_factor = 1 + prior_receipts["sku_growth_rate"]
 
+prior_receipts["committed_seasonal_receipt_units"] = (
+    prior_receipts["prior_year_receipt_units"] * growth_factor
 )
 
-
-prior_receipts[
-    "sku_growth_rate"
-] = (
-
-    prior_receipts[
-        "sku_id"
-    ]
-
-    .map(
-        SKU_GROWTH
-    )
-
+prior_receipts["committed_replenishment_receipt_units"] = (
+    prior_receipts["prior_year_replenishment_units"] * growth_factor
+    if SUPPLY_VIEW == "seasonal_plus_replenishment"
+    else 0.0
 )
-
-
-if prior_receipts[
-    "sku_growth_rate"
-].isna().any():
-
-    raise RuntimeError(
-        "Missing SKU growth assumption."
-    )
-
-
-prior_receipts[
-    "committed_receipt_units"
-] = (
-
-    prior_receipts[
-        "prior_year_receipt_units"
-    ]
-
-    *
-
-    (
-        1
-
-        +
-
-        prior_receipts[
-            "sku_growth_rate"
-        ]
-    )
-
-)
-
 
 forward_receipts = (
-
     prior_receipts
-
-    .groupby(
-        [
-            "forecast_week_start",
-            "sku_id",
-            "channel_id"
-        ],
-
-        as_index=False
-
-    )
-
+    .groupby(["forecast_week_start", "sku_id", "channel_id"], as_index=False)
     .agg(
+        committed_seasonal_receipt_units=("committed_seasonal_receipt_units", "sum"),
+        committed_replenishment_receipt_units=(
+            "committed_replenishment_receipt_units", "sum"
+        ),
+    )
+)
 
-        committed_receipt_units=(
-            "committed_receipt_units",
-            "sum"
-        )
+forward_receipts["committed_receipt_units"] = (
+    forward_receipts["committed_seasonal_receipt_units"]
+    + forward_receipts["committed_replenishment_receipt_units"]
+)
 
+# Timing guard: replenishment counts as supply only if it is in
+# transit at the forecast origin. Within the window (plan weeks
+# 1-13, before plan week 20) no new replenishment can be ordered.
+LATEST_IN_TRANSIT_ARRIVAL = FORECAST_ORIGIN + pd.Timedelta(
+    weeks=REPLENISHMENT_LEAD_WEEKS
+)
+
+late_replenishment = forward_receipts[
+    (forward_receipts["committed_replenishment_receipt_units"] > 0)
+    & (forward_receipts["forecast_week_start"] > LATEST_IN_TRANSIT_ARRIVAL)
+]
+
+if len(late_replenishment) > 0:
+    raise RuntimeError(
+        "Forward replenishment lands after the in-transit window "
+        f"(latest arrival {LATEST_IN_TRANSIT_ARRIVAL.date()}); it could not "
+        "have been ordered before the plan date."
     )
 
+print("\nSupply view:", SUPPLY_VIEWS[SUPPLY_VIEW])
+print(
+    "Forward seasonal receipts:",
+    round(forward_receipts["committed_seasonal_receipt_units"].sum(), 2),
+)
+print(
+    "Forward in-transit replenishment:",
+    round(forward_receipts["committed_replenishment_receipt_units"].sum(), 2),
+    f"(arrives by {LATEST_IN_TRANSIT_ARRIVAL.date()})",
 )
 
 
@@ -2032,17 +2037,12 @@ plan = (
 )
 
 
-plan[
-    "committed_receipt_units"
-] = (
-
-    plan[
-        "committed_receipt_units"
-    ]
-
-    .fillna(0.0)
-
-)
+for receipt_column in [
+    "committed_seasonal_receipt_units",
+    "committed_replenishment_receipt_units",
+    "committed_receipt_units",
+]:
+    plan[receipt_column] = plan[receipt_column].fillna(0.0)
 
 
 plan[
@@ -5258,11 +5258,14 @@ output[
 ] = ANNUAL_CARRYING_COST_RATE
 
 
-output[
-    "receipt_projection_method"
-] = (
+output["receipt_projection_method"] = (
     "PRIOR_YEAR_SEASONAL_RECEIPTS_SHIFTED_52W_PLUS_FROZEN_SKU_GROWTH"
+    if SUPPLY_VIEW == "seasonal_only"
+    else "PRIOR_YEAR_SEASONAL_AND_REPLENISHMENT_RECEIPTS_SHIFTED_52W_PLUS_FROZEN_SKU_GROWTH"
 )
+
+
+output["supply_view"] = SUPPLY_VIEWS[SUPPLY_VIEW]
 
 
 output[
@@ -5391,6 +5394,22 @@ final_checks = {
         ]
         .ge(0)
         .all(),
+
+
+    "Committed receipts = seasonal + in-transit replenishment":
+        np.allclose(
+            output["committed_receipt_units"],
+            output["committed_seasonal_receipt_units"]
+            + output["committed_replenishment_receipt_units"],
+            atol=1e-9,
+        ),
+
+
+    "Replenishment arrives within lead time of the origin":
+        not (
+            (output["committed_replenishment_receipt_units"] > 0)
+            & (output["forecast_week_start"] > LATEST_IN_TRANSIT_ARRIVAL)
+        ).any(),
 
 
     "No negative base ending inventory":

@@ -46,8 +46,11 @@ CHART_DIR = ROOT / "08_assets" / "charts"
 
 HISTORY_FILE = ROOT / "02_data/processed/DemandIQ_Step3D_v4_Retail_Economics.csv"
 RECON_FILE = ROOT / "03_model_evidence/step4b_forecasting/baseline/DemandIQ_Step4B_Baseline_Predictions.csv"
-TRAJECTORY_FILE = ROOT / "05_outputs/decision_layer/DemandIQ_Step6A_Weekly_Planning_Trajectory.csv"
-SERIES_DECISION_FILE = ROOT / "05_outputs/decision_layer/DemandIQ_Step6A_Series_Decision_Summary.csv"
+# The 13-week counterfactuals analyse the plan as first published (v1: seasonal
+# drops only). Step 5 now counts in-transit replenishment; Step 8B reconciles
+# that corrected plan with this script's queue.
+TRAJECTORY_FILE = ROOT / "05_outputs/v1_published_plan/DemandIQ_Step6A_Weekly_Planning_Trajectory.csv"
+SERIES_DECISION_FILE = ROOT / "05_outputs/v1_published_plan/DemandIQ_Step6A_Series_Decision_Summary.csv"
 CHAMPION_FILE = ROOT / "05_outputs/champion_selection/DemandIQ_Step4B_Champion_Selection.csv"
 LAUNCH_BUY_FILE = ROOT / "05_outputs/launch_step7e/DemandIQ_Step7E_Initial_Buy_Plan.csv"
 LAUNCH_ACTUALS_FILE = ROOT / "05_outputs/launch_step7e/DemandIQ_Step7E_Launch_Weekly_Actuals.csv"

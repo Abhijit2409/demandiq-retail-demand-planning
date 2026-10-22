@@ -14,12 +14,20 @@ def render():
     e = exec_df.iloc[0]
     skus, chans = filters.get_selected()
 
+    n_weekly = int((series_df["risk_type"] == "WEEKLY_SERVICE_RISK").sum())
+    n_below = int((series_df["base_final_wos"] < 2.5).sum())
+    if n_weekly:
+        insight = (f"Portfolio fill is <b>{fmt.pct(e['base_13w_fill_rate'])}</b>, but {n_weekly} "
+                   f"series miss the weekly 92% target in 2+ weeks, and {n_below} of 9 finish "
+                   "below safety-stock policy. Healthy aggregates can hide weekly failures.")
+    else:
+        insight = (f"Portfolio fill is <b>{fmt.pct(e['base_13w_fill_rate'])}</b> and no series "
+                   "misses the weekly 92% target once in-transit replenishment is counted. "
+                   f"The risk is coverage: {n_below} of 9 finish below the 2.5-week policy.")
     cards.page_header(
         "Planning · Flagship", "Service & Inventory Risk",
-        "How can healthy aggregate service coexist with execution risk?",
-        "Portfolio fill is <b>98.8%</b>, but three series miss the weekly 92% target twice "
-        "each, while all nine finish below safety-stock policy — healthy aggregates can hide "
-        "localized weekly execution failures.",
+        "Where does weekly execution or ending coverage fall short?",
+        insight,
     )
 
     series_f = apply_series_filter(series_df, skus, chans)
@@ -41,11 +49,13 @@ def render():
         {"label": "Aggregate Base Fill", "value": fmt.pct(e["base_13w_fill_rate"]),
          "sub": "≥ 92% target", "sub_kind": "up", "accent": "ok"},
         {"label": "P1 Weekly Risks", "value": f"{len(p1)} series",
-         "sub": "Repeated weekly miss", "sub_kind": "warn", "accent": "p1"},
+         "sub": "Repeated weekly miss", "sub_kind": "warn" if len(p1) else "up",
+         "accent": "p1" if len(p1) else "ok"},
         {"label": "Worst Weekly Fill", "value": fmt.pct(worst_fill),
          "sub": "Single-week low", "accent": "p1"},
         {"label": "Shared Worst-Service Week", "value": worst_lbl,
-         "sub": "Zero-receipt week between batches", "accent": "p2"},
+         "sub": "Zero-receipt week between batches" if len(p1) else "No week below target",
+         "accent": "p2"},
     ])
     st.write("")
 
@@ -58,14 +68,19 @@ def render():
     with c1:
         st.plotly_chart(risk_charts.demand_vs_receipts(weekly_f, highlight_week=worst_week),
                         width='stretch', config=PLOTLY_CONFIG)
-        st.markdown('<div class="diq-note">Receipts arrive in lumpy batches. The shared '
-                    'worst-service week is a zero-receipt week between replenishments; '
-                    'thin-buffer series miss service there while better-buffered series hold. '
-                    'Diagnostic alignment, not proven causality.</div>',
-                    unsafe_allow_html=True)
+        if len(p1):
+            receipts_note = ('Receipts arrive in lumpy batches. The shared worst-service week '
+                             'is a zero-receipt week between batches; thin-buffer series miss '
+                             'service there. Diagnostic alignment, not proven causality.')
+        else:
+            receipts_note = ('Receipts arrive in batches: in-transit replenishment in the first '
+                             'three weeks, then the seasonal drops. Every week is covered; the '
+                             'gaps between drops show up as thin ending cover, not missed sales.')
+        st.markdown(f'<div class="diq-note">{receipts_note}</div>', unsafe_allow_html=True)
     with c2:
         st.plotly_chart(risk_charts.ending_wos(series_f),
                         width='stretch', config=PLOTLY_CONFIG)
-        st.markdown('<div class="diq-note">All nine series finish below policy coverage; only '
-                    'three also experience repeated weekly service misses (P1). The rest are '
-                    'P2 PROTECT.</div>', unsafe_allow_html=True)
+        n_p2 = int((series_f["priority_tier"] == "P2").sum())
+        st.markdown(f'<div class="diq-note">{n_below} of 9 series finish below policy cover; '
+                    f'{len(p1)} also miss weekly service repeatedly (P1). {n_p2} are P2 PROTECT '
+                    'in this view.</div>', unsafe_allow_html=True)

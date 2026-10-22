@@ -50,7 +50,9 @@ def decision_queue_table(series_df: pd.DataFrame):
         "Action": s["planner_action"],
         "13W Fill": s["base_13w_fill_rate"].map(lambda v: fmt.pct(v)),
         "Worst Weekly Fill": s["min_weekly_base_fill_rate"].map(lambda v: fmt.pct(v)),
-        "Worst Week": s["worst_base_service_week"].map(fmt.date_short),
+        "Worst Week": [fmt.date_short(w) if n > 0 else "—"
+                       for w, n in zip(s["worst_base_service_week"],
+                                       s["weeks_below_service_target"])],
         "Weeks Below": s["weeks_below_service_target"].astype(int),
         "Ending WOS": s["base_final_wos"].map(lambda v: fmt.wos(v)),
     })
@@ -76,5 +78,5 @@ def decision_queue_table(series_df: pd.DataFrame):
     if rows:
         return s.iloc[rows[0]]
     if len(s):
-        return s.iloc[0]  # default: first P1
+        return s.iloc[0]  # default: highest-priority row
     return None

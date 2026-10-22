@@ -1,20 +1,26 @@
 """Reusable governance/reconciliation validation for the DemandIQ dashboard.
 
-Confirms the frozen Step 6A layer still matches the governed state. Used by
-the Step 6C smoke test and available to surface a governance badge in the UI.
+Confirms the Step 6A layer is internally consistent and follows the Step 5
+governance rules. The checks are rules, not expected counts, so they hold for
+any supply view (the corrected plan and the v1 plan as first published).
 Read-only: never mutates or rebuilds any upstream data.
 """
 from __future__ import annotations
 import math
 
-EXPECTED_P1_SERIES = {
-    ("APS-001", "WHOLESALE"),
-    ("CTS-001", "RETAIL"),
-    ("IMH-001", "WHOLESALE"),
-}
 EXPECTED_BASE_DEMAND = 36434.66
 SERVICE_TARGET = 0.92
 SAFETY_STOCK_WEEKS = 2.5
+WEEKLY_EXCEPTION_WEEKS = 2
+
+TIER_BY_RISK = {
+    "BASE_SERVICE_RISK": "P1",
+    "WEEKLY_SERVICE_RISK": "P1",
+    "LOW_COVERAGE_RISK": "P2",
+    "SEVERE_SCENARIO_RISK": "P2",
+    "EXCESS_INVENTORY_RISK": "P3",
+    "BALANCED": "P4",
+}
 
 
 def _close(a, b, tol=1.0):
@@ -38,44 +44,56 @@ def run_validation(exec_df, series_df, weekly_df) -> dict:
         weekly_df.duplicated(["forecast_week_start", "sku_id", "channel_id"]).sum() == 0
     )
 
-    # ---- frozen classifications ----
-    p1 = series_df[series_df["risk_type"] == "WEEKLY_SERVICE_RISK"]
-    p2 = series_df[series_df["risk_type"] == "LOW_COVERAGE_RISK"]
-    checks["P1 WEEKLY_SERVICE_RISK = 3"] = len(p1) == 3
-    checks["P2 LOW_COVERAGE_RISK = 6"] = len(p2) == 6
-    checks["Exact P1 series set"] = (
-        set(map(tuple, p1[["sku_id", "channel_id"]].values)) == EXPECTED_P1_SERIES
+    # ---- classification rules ----
+    weekly_risk = series_df[series_df["risk_type"] == "WEEKLY_SERVICE_RISK"]
+    low_cover = series_df[series_df["risk_type"] == "LOW_COVERAGE_RISK"]
+    checks["Priority tier follows the risk hierarchy"] = bool(
+        (series_df["risk_type"].map(TIER_BY_RISK) == series_df["priority_tier"]).all()
     )
-    checks["All P1 action = ESCALATE"] = bool((p1["planner_action"] == "ESCALATE").all())
-    checks["All P2 action = PROTECT"] = bool((p2["planner_action"] == "PROTECT").all())
-
-    # ---- service governance ----
-    checks["All P1 weekly exception flag = 1"] = bool(
-        (p1["weekly_service_exception_flag"] == 1).all()
+    checks["Weekly service risk -> ESCALATE"] = bool(
+        (weekly_risk["planner_action"] == "ESCALATE").all()
     )
-    checks["All P1 weeks_below >= 2"] = bool((p1["weeks_below_service_target"] >= 2).all())
-    checks["No P1 auto-converted to CHASE"] = bool(
-        (p1["planner_action"] != "CHASE").all()
-        and math.isclose(float(p1["recommended_chase_release_units"].sum()), 0.0, abs_tol=1e-9)
-        if "recommended_chase_release_units" in p1.columns
-        else (p1["planner_action"] != "CHASE").all()
+    checks["Weekly service risk has 2+ weekly misses"] = bool(
+        (weekly_risk["weeks_below_service_target"] >= WEEKLY_EXCEPTION_WEEKS).all()
+    )
+    checks["Weekly exception flag only on P1"] = bool(
+        series_df.loc[series_df["weekly_service_exception_flag"] == 1, "priority_tier"]
+        .eq("P1").all()
+    )
+    checks["Low coverage -> PROTECT, below policy"] = bool(
+        (low_cover["planner_action"] == "PROTECT").all()
+        and (low_cover["base_final_wos"] < SAFETY_STOCK_WEEKS).all()
+    )
+    checks["No weekly service risk auto-converted to CHASE"] = bool(
+        (weekly_risk["planner_action"] != "CHASE").all()
+        and math.isclose(
+            float(weekly_risk["recommended_chase_release_units"].sum()), 0.0, abs_tol=1e-9
+        )
     )
     checks["Service target = 92%"] = _close(e["service_target_fill_rate"], SERVICE_TARGET, 1e-6)
 
-    # ---- immediate execution ----
-    checks["Immediate chase release = 0"] = _close(e["immediate_chase_release_units"], 0.0, 1e-9)
-    checks["Immediate reallocation = 0"] = _close(e["immediate_reallocation_units"], 0.0, 1e-9)
+    # ---- immediate execution: only an aggregate service failure releases stock ----
+    not_base = series_df["risk_type"] != "BASE_SERVICE_RISK"
+    checks["Immediate chase only on base service risk"] = bool(
+        series_df.loc[not_base, "recommended_chase_release_units"].eq(0).all()
+    )
+    checks["Immediate reallocation only on base service risk"] = bool(
+        series_df.loc[not_base, "recommended_reallocation_units"].eq(0).all()
+    )
 
     # ---- reconciliation ----
     checks["Base demand = 36,434.66"] = _close(e["base_13w_demand_units"], EXPECTED_BASE_DEMAND, 1.0)
     checks["Exec base demand == weekly sum"] = _close(
         e["base_13w_demand_units"], weekly_df["base_forecast_units"].sum(), 1.0
     )
-    checks["Exec P1 count == series P1 count"] = (
-        int(e["p1_weekly_service_risk_series"]) == len(p1)
+    checks["Exec receipts == weekly sum"] = _close(
+        e["committed_receipts_13w_units"], weekly_df["committed_receipt_units"].sum(), 1.0
     )
-    checks["Exec P2 count == series P2 count"] = (
-        int(e["p2_low_coverage_risk_series"]) == len(p2)
+    checks["Exec weekly-risk count == series count"] = (
+        int(e["p1_weekly_service_risk_series"]) == len(weekly_risk)
+    )
+    checks["Exec low-coverage count == series count"] = (
+        int(e["p2_low_coverage_risk_series"]) == len(low_cover)
     )
 
     return checks

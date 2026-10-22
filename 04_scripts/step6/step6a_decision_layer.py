@@ -1,7 +1,7 @@
+import argparse
 import pandas as pd
 import numpy as np
 from pathlib import Path
-from datetime import datetime
 
 
 # ============================================================
@@ -40,7 +40,8 @@ from datetime import datetime
 # 1. PATHS
 # ============================================================
 
-PROJECT_DIR = Path(r"D:\Downloads\DemandIQ")
+# Repository root: this file lives in 04_scripts/step6/.
+PROJECT_DIR = Path(__file__).resolve().parents[2]
 
 STEP4D_FILE = (
     PROJECT_DIR
@@ -48,13 +49,22 @@ STEP4D_FILE = (
     / "DemandIQ_Step4D_Final_13Week_Forecast.csv"
 )
 
-STEP5_FILE = (
-    PROJECT_DIR
-    / "05_outputs" / "ibp_decisions"
-    / "DemandIQ_Step5_IBP_Decision_Plan.csv"
+parser = argparse.ArgumentParser(description="DemandIQ Step 6A: KPI and decision layer.")
+parser.add_argument(
+    "--step5-file",
+    type=Path,
+    default=PROJECT_DIR / "05_outputs" / "ibp_decisions" / "DemandIQ_Step5_IBP_Decision_Plan.csv",
 )
+parser.add_argument(
+    "--output-dir",
+    type=Path,
+    default=PROJECT_DIR / "05_outputs" / "decision_layer",
+)
+ARGS = parser.parse_args()
 
-OUTPUT_DIR = PROJECT_DIR / "05_outputs" / "decision_layer"
+STEP5_FILE = ARGS.step5_file
+
+OUTPUT_DIR = ARGS.output_dir
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 EXEC_FILE = OUTPUT_DIR / "DemandIQ_Step6A_Executive_KPI_Summary.csv"
@@ -74,13 +84,18 @@ EXPECTED_ROWS = EXPECTED_SERIES * FORECAST_HORIZON
 EXPECTED_BASE_13W_DEMAND = 36434.66
 RECON_TOLERANCE_UNITS = 1.0
 
-EXPECTED_P1_SERIES = {
-    ("APS-001", "WHOLESALE"),
-    ("CTS-001", "RETAIL"),
-    ("IMH-001", "WHOLESALE"),
+# Risk type -> priority tier, as governed in Step 5 section 39.
+TIER_BY_RISK = {
+    "BASE_SERVICE_RISK": "P1",
+    "WEEKLY_SERVICE_RISK": "P1",
+    "LOW_COVERAGE_RISK": "P2",
+    "SEVERE_SCENARIO_RISK": "P2",
+    "EXCESS_INVENTORY_RISK": "P3",
+    "BALANCED": "P4",
 }
 
-RUN_TIMESTAMP = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+# Outputs carry the plan date, not the wall-clock run time, so a
+# rebuild is byte-identical.
 SOURCE_NOTE = (
     "DERIVED from frozen DemandIQ_Step4D_Final_13Week_Forecast.csv "
     "and DemandIQ_Step5_IBP_Decision_Plan.csv"
@@ -97,6 +112,15 @@ for path in (STEP4D_FILE, STEP5_FILE):
 
 forecast_4d = pd.read_csv(STEP4D_FILE, parse_dates=["forecast_week_start"])
 step5 = pd.read_csv(STEP5_FILE, parse_dates=["forecast_week_start"])
+
+# Plans written before the supply-view fix carry seasonal drops only.
+if "committed_seasonal_receipt_units" not in step5.columns:
+    step5["committed_seasonal_receipt_units"] = step5["committed_receipt_units"]
+    step5["committed_replenishment_receipt_units"] = 0.0
+    step5["supply_view"] = "SEASONAL_DROPS_ONLY"
+
+SUPPLY_VIEW = step5["supply_view"].iloc[0]
+PLAN_AS_OF_DATE = step5["forecast_week_start"].min().strftime("%Y-%m-%d")
 
 print("=" * 92)
 print("STEP 6A — FINAL KPI & DECISION LAYER")
@@ -184,6 +208,8 @@ agg = step5.groupby(GROUP).agg(
     severe_13w_demand_units=("severe_scenario_forecast_units", "sum"),
     base_13w_projected_shipments_units=("base_shipped_units", "sum"),
     forward_committed_receipts_13w=("committed_receipt_units", "sum"),
+    forward_seasonal_receipts_13w=("committed_seasonal_receipt_units", "sum"),
+    forward_in_transit_replenishment_13w=("committed_replenishment_receipt_units", "sum"),
     weekly_below_target_count=(  # for QA cross-check vs weeks_below_service_target
         "base_fill_rate",
         lambda s: int((s < SERVICE_TARGET_FILL_RATE).sum()),
@@ -221,6 +247,7 @@ series = (
     .join(agg[[
         "base_13w_demand_units", "mild_13w_demand_units", "severe_13w_demand_units",
         "forward_committed_receipts_13w",
+        "forward_seasonal_receipts_13w", "forward_in_transit_replenishment_13w",
     ]])
     .join(ending_safety)
     .reset_index()
@@ -241,7 +268,9 @@ series = series[[
     "base_final_inventory_units", "base_final_wos",
     "ending_safety_stock_units", "base_safety_gap_units",
     # supply / options
-    "forward_committed_receipts_13w", "chase_capacity_units",
+    "forward_committed_receipts_13w",
+    "forward_seasonal_receipts_13w", "forward_in_transit_replenishment_13w",
+    "chase_capacity_units",
     "recommended_reallocation_units", "recommended_chase_release_units",
     "contingency_chase_option_units",
     # decision
@@ -265,8 +294,9 @@ weekly = step5[[
     # demand
     "base_forecast_units",
     "mild_scenario_forecast_units", "severe_scenario_forecast_units",
-    # supply
+    # supply: total = seasonal drops + in-transit replenishment
     "committed_receipt_units",
+    "committed_seasonal_receipt_units", "committed_replenishment_receipt_units",
     # base inventory flow (frozen simulation outputs)
     "base_beginning_inventory_units", "base_return_restock_units",
     "base_available_units", "base_shipped_units", "base_lost_demand_units",
@@ -312,15 +342,27 @@ peak_4d = forecast_4d.groupby("forecast_week_start")["base_forecast_units"].sum(
 peak_week = peak_4d.idxmax()
 peak_units = float(peak_4d.max())
 
+# Counts by risk type (kept for the app) and by tier and action.
 p1_count = int((series["risk_type"] == "WEEKLY_SERVICE_RISK").sum())
 p2_count = int((series["risk_type"] == "LOW_COVERAGE_RISK").sum())
+severe_count = int((series["risk_type"] == "SEVERE_SCENARIO_RISK").sum())
+tier_counts = series["priority_tier"].value_counts()
+action_counts = series["planner_action"].value_counts()
+
+immediate_chase = float(first_per_series["recommended_chase_release_units"].sum())
+immediate_reallocation = float(first_per_series["recommended_reallocation_units"].sum())
+exception_series = int(series["weekly_service_exception_flag"].sum())
 
 portfolio_decision_status = (
-    f"ACTION REQUIRED - {p1_count} P1 WEEKLY_SERVICE_RISK (ESCALATE) + "
-    f"{p2_count} P2 LOW_COVERAGE_RISK (PROTECT); "
-    f"aggregate Base fill {base_ship / base_demand * 100:.1f}% >= "
-    f"{SERVICE_TARGET_FILL_RATE * 100:.0f}% target, but weekly service "
-    f"exceptions present; 0 automatic chase/reallocation released"
+    f"{'ACTION REQUIRED' if tier_counts.get('P1', 0) else 'NO ESCALATION'} - "
+    + " + ".join(
+        f"{n} {action}" for action, n in sorted(action_counts.items())
+    )
+    + f"; aggregate Base fill {base_ship / base_demand * 100:.1f}% vs "
+    f"{SERVICE_TARGET_FILL_RATE * 100:.0f}% target; "
+    f"{exception_series} series with 2+ weeks below target; "
+    f"{immediate_chase:,.0f} chase and {immediate_reallocation:,.0f} "
+    f"reallocation units released automatically"
 )
 
 exec_row = {
@@ -340,12 +382,26 @@ exec_row = {
         first_per_series["opening_inventory_units"].sum()
     ),
     "committed_receipts_13w_units": float(step5["committed_receipt_units"].sum()),
+    "committed_seasonal_receipts_13w_units": float(
+        step5["committed_seasonal_receipt_units"].sum()
+    ),
+    "in_transit_replenishment_13w_units": float(
+        step5["committed_replenishment_receipt_units"].sum()
+    ),
     "total_chase_capacity_units": float(
         first_per_series["chase_capacity_units"].sum()
     ),
     # risk counts
     "p1_weekly_service_risk_series": p1_count,
     "p2_low_coverage_risk_series": p2_count,
+    "p2_severe_scenario_risk_series": severe_count,
+    "p1_series": int(tier_counts.get("P1", 0)),
+    "p2_series": int(tier_counts.get("P2", 0)),
+    "p3_series": int(tier_counts.get("P3", 0)),
+    "p4_series": int(tier_counts.get("P4", 0)),
+    "escalate_series": int(action_counts.get("ESCALATE", 0)),
+    "protect_series": int(action_counts.get("PROTECT", 0)),
+    "hold_series": int(action_counts.get("HOLD", 0)),
     "total_series": int(series.shape[0]),
     # protection / immediate action (frozen governance)
     "base_safety_stock_protection_gap_units": float(
@@ -389,7 +445,8 @@ exec_row = {
     "data_classification": "DERIVED",
     "economic_value_basis": "planning exposure proxy (not accounting profit)",
     "provenance": SOURCE_NOTE,
-    "generated_at": RUN_TIMESTAMP,
+    "supply_view": SUPPLY_VIEW,
+    "plan_as_of_date": PLAN_AS_OF_DATE,
 }
 executive = pd.DataFrame([exec_row])
 
@@ -433,31 +490,43 @@ qa["Exec demand == weekly demand sum"] = np.isclose(
 qa["Exec shipments == weekly base_shipped sum"] = np.isclose(
     base_ship, float(weekly["base_shipped_units"].sum()), atol=1e-6
 )
-qa["P1 WEEKLY_SERVICE_RISK series = 3"] = p1_count == 3
-qa["P2 LOW_COVERAGE_RISK series = 6"] = p2_count == 6
-qa["P1 series set matches expected"] = (
-    set(map(tuple, series.loc[
-        series["risk_type"] == "WEEKLY_SERVICE_RISK", GROUP
-    ].values)) == EXPECTED_P1_SERIES
+qa["Committed receipts = seasonal + in-transit replenishment"] = bool(np.allclose(
+    step5["committed_receipt_units"],
+    step5["committed_seasonal_receipt_units"]
+    + step5["committed_replenishment_receipt_units"],
+    atol=1e-6,
+))
+qa["Exec receipts == weekly receipts sum"] = np.isclose(
+    exec_row["committed_receipts_13w_units"],
+    float(weekly["committed_receipt_units"].sum()), atol=1e-6
 )
-qa["Immediate chase release = 0"] = np.isclose(
-    exec_row["immediate_chase_release_units"], 0.0, atol=1e-9
+
+# ---- decision governance (rules, not expected counts) ----
+qa["Priority tier follows the Step 5 risk hierarchy"] = bool(
+    (series["risk_type"].map(TIER_BY_RISK) == series["priority_tier"]).all()
 )
-qa["Immediate reallocation = 0"] = np.isclose(
-    exec_row["immediate_reallocation_units"], 0.0, atol=1e-9
+qa["Exec tier counts == series tier counts"] = (
+    sum(exec_row[f"p{i}_series"] for i in range(1, 5)) == series.shape[0]
+)
+not_base_service = series["risk_type"] != "BASE_SERVICE_RISK"
+qa["Immediate chase only on BASE_SERVICE_RISK"] = bool(
+    series.loc[not_base_service, "recommended_chase_release_units"].eq(0).all()
+)
+qa["Immediate reallocation only on BASE_SERVICE_RISK"] = bool(
+    series.loc[not_base_service, "recommended_reallocation_units"].eq(0).all()
 )
 
 # ---- weekly service governance ----
 p1_rows = series[series["risk_type"] == "WEEKLY_SERVICE_RISK"]
-non_p1_rows = series[series["risk_type"] != "WEEKLY_SERVICE_RISK"]
 qa["All WEEKLY_SERVICE_RISK have weeks_below >= 2"] = bool(
     (p1_rows["weeks_below_service_target"] >= 2).all()
 )
 qa["All WEEKLY_SERVICE_RISK exception_flag == 1"] = bool(
     (p1_rows["weekly_service_exception_flag"] == 1).all()
 )
-qa["Other 6 series do NOT trip weekly exception"] = bool(
-    (non_p1_rows["weekly_service_exception_flag"] == 0).all()
+qa["Weekly exceptions appear only on P1 series"] = bool(
+    series.loc[series["weekly_service_exception_flag"] == 1, "priority_tier"]
+    .eq("P1").all()
 )
 qa["All WEEKLY_SERVICE_RISK action == ESCALATE"] = bool(
     (p1_rows["planner_action"] == "ESCALATE").all()

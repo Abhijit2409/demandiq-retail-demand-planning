@@ -13,10 +13,12 @@ governed risk classifications into a five-page planner experience.
 
 Move a planner / IBP leader / reviewer through:
 `Portfolio → Demand Outlook → Service / Inventory Risk → SKU × Channel Decision → Governance`,
-around one governed story: aggregate 13-week service is healthy, yet three
-SKU-channel series suffer repeated weekly service failures while the portfolio
-finishes with thin safety-stock coverage — so the response is split between
-**P1 ESCALATE** and **P2 PROTECT**, with **no automatic chase release**.
+around one governed story. With in-transit replenishment counted as supply,
+13-week service holds in every week, but most series finish with thin
+safety-stock coverage. The corrected plan is **0 ESCALATE, 7 PROTECT, 2 HOLD**,
+with **no automatic chase release**. The pages word their headlines from the
+data, so they also render the v1 plan as first published (seasonal drops only:
+3 ESCALATE, 6 PROTECT), kept in `05_outputs/v1_published_plan/`.
 
 ## Structure
 

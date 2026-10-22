@@ -67,17 +67,32 @@ def demand_vs_receipts(weekly: pd.DataFrame, highlight_week=None):
     week, from frozen data) is annotated once. Diagnostic alignment, not a
     proven-cause claim.
     """
-    d = (weekly.groupby("forecast_week_start", as_index=False)[
-        ["base_forecast_units", "committed_receipt_units"]].sum()
-        .sort_values("forecast_week_start").reset_index(drop=True))
+    split = "committed_replenishment_receipt_units" in weekly.columns
+    cols = ["base_forecast_units", "committed_receipt_units"]
+    if split:
+        cols += ["committed_seasonal_receipt_units", "committed_replenishment_receipt_units"]
+    d = (weekly.groupby("forecast_week_start", as_index=False)[cols].sum()
+         .sort_values("forecast_week_start").reset_index(drop=True))
     xlab = [pd.Timestamp(x).strftime("%b %d") for x in d["forecast_week_start"]]
 
     fig = go.Figure()
-    fig.add_trace(go.Bar(
-        x=xlab, y=d["committed_receipt_units"], name="Committed receipts",
-        marker_color=theme.P2, opacity=0.85,
-        hovertemplate="%{x}<br>Receipts: %{y:,.0f} units<extra></extra>",
-    ))
+    if split and d["committed_replenishment_receipt_units"].sum() > 0:
+        fig.add_trace(go.Bar(
+            x=xlab, y=d["committed_seasonal_receipt_units"], name="Seasonal drops",
+            marker_color=theme.P2, opacity=0.85,
+            hovertemplate="%{x}<br>Seasonal drops: %{y:,.0f} units<extra></extra>",
+        ))
+        fig.add_trace(go.Bar(
+            x=xlab, y=d["committed_replenishment_receipt_units"],
+            name="In-transit replenishment", marker_color=theme.NEUTRAL, opacity=0.9,
+            hovertemplate="%{x}<br>In-transit replenishment: %{y:,.0f} units<extra></extra>",
+        ))
+    else:
+        fig.add_trace(go.Bar(
+            x=xlab, y=d["committed_receipt_units"], name="Committed receipts",
+            marker_color=theme.P2, opacity=0.85,
+            hovertemplate="%{x}<br>Receipts: %{y:,.0f} units<extra></extra>",
+        ))
     fig.add_trace(go.Scatter(
         x=xlab, y=d["base_forecast_units"], name="Base demand",
         mode="lines+markers", line=dict(color=theme.BASE_LINE, width=3),
@@ -98,8 +113,8 @@ def demand_vs_receipts(weekly: pd.DataFrame, highlight_week=None):
                 font=dict(color=theme.P1, size=13),
             )
 
-    fig.update_layout(title="Demand vs Committed Receipts (lumpy replenishment)",
-                      barmode="overlay")
+    fig.update_layout(title="Demand vs Committed Receipts",
+                      barmode="stack" if split else "overlay")
     fig.update_yaxes(title_text="units / week")
     return theme.apply_theme(fig, height=390)
 
@@ -125,7 +140,8 @@ def ending_wos(series_df: pd.DataFrame):
                   annotation_text="2.5-week safety-stock policy", annotation_position="top",
                   annotation_font=dict(size=13, color=theme.INK))
     fig.update_layout(title="Ending Weeks of Supply vs 2.5-Week Policy", showlegend=False)
-    fig.update_xaxes(title_text="weeks of supply", range=[0, 2.9])
+    fig.update_xaxes(title_text="weeks of supply",
+                     range=[0, max(2.9, float(s["base_final_wos"].max()) * 1.15)])
     fig.update_yaxes(title_text="", autorange="reversed", tickfont=dict(size=14))
     return theme.apply_theme(fig, height=420, legend=False)
 

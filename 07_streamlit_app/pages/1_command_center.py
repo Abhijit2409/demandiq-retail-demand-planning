@@ -39,8 +39,9 @@ def render():
     base_fill = e["base_13w_fill_rate"]
     target = e["service_target_fill_rate"]
     p1 = int(e["p1_weekly_service_risk_series"])
-    p2 = int(e["p2_low_coverage_risk_series"])
     total = int(e.get("total_series", 9))
+    protect = int((series_df["planner_action"] == "PROTECT").sum())
+    below_policy = int((series_df["base_final_wos"] < 2.5).sum())
     cards.kpi_grid([
         {"label": "13-Week Base Demand", "value": fmt.units(e["base_13w_demand_units"]),
          "sub": "Mature-product portfolio"},
@@ -50,7 +51,8 @@ def render():
         {"label": "Service Target", "value": fmt.pct(target),
          "sub": "Governed policy (92%)"},
         {"label": "P1 Weekly Exceptions", "value": f"{p1} of {total} series",
-         "sub": "Require ESCALATE", "sub_kind": "warn", "accent": "p1"},
+         "sub": "Require ESCALATE" if p1 else "No repeated weekly misses",
+         "sub_kind": "warn" if p1 else "up", "accent": "p1" if p1 else "ok"},
         {"label": "Safety-Stock Gap",
          "value": fmt.units(e["base_safety_stock_protection_gap_units"]),
          "sub": "Buffer shortfall vs 2.5-week policy", "accent": "p2"},
@@ -68,11 +70,20 @@ def render():
         st.plotly_chart(demand_charts.portfolio_demand_trend(weekly_df),
                         width='stretch', config=PLOTLY_CONFIG)
     with side:
-        cards.section("Urgent Planner Actions", "P1 series requiring escalation")
-        cards.p1_decision_cards(series_df)
+        if p1:
+            cards.section("Urgent Planner Actions", "P1 series requiring escalation")
+            note = (f'+ {protect} series require <b>PROTECT</b> to rebuild cover toward the '
+                    '2.5-week policy.')
+        else:
+            cards.section("Protect First", "No escalations · thinnest ending cover")
+            note = (f'{protect} series are <b>PROTECT</b>: {below_policy} finish below the '
+                    '2.5-week policy')
+            if protect > below_policy:
+                note += ' and the rest fall below it under the severe-weather scenario'
+            note += '.'
+        cards.priority_cards(series_df)
         st.markdown(
-            f'<div class="diq-note">+ {p2} series require <b>PROTECT</b> because ending '
-            'coverage remains below the 2.5-week policy.</div>'
+            f'<div class="diq-note">{note}</div>'
             '<a href="/decision-queue" target="_self" '
             'style="font-weight:650;color:#3F6C8E;text-decoration:none;">'
             'Review full decision queue →</a>',
