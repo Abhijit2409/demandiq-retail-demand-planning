@@ -51,10 +51,10 @@
 - **Therefore:** start each S&OP with the top 20 of 81 cells by stockout days.
 
 **4. Escalate only shortfalls that survive forecast error.**
-- **I found:** the original 13-week plan counted only the seasonal drops as supply and escalated 3 series. It left out 6,512 units of replenishment already in transit at the plan date, all landing by Jul 13 *(observable)*.
-- **Therefore:** the Step 5 engine now counts that replenishment and escalates none: **0 ESCALATE, 7 PROTECT, 2 HOLD**.
-- **Check:** Step 8's error-band queue (0 ESCALATE, 1 WATCH, 5 PROTECT, 3 no action) agrees on 7 of 9 series. The two differences come from tests only one of them runs: the forecast-error band (APS-001 Wholesale on watch) and the severe-weather case (IMH-001 Retail protected).
-- **Robustness:** no escalation returns when the in-transit estimate is stressed by its worst backtest error (±30%).
+- **I found:** the published 13-week plan counted only the seasonal drops as supply, so it assumed zero replenishment, and escalated 3 series (APS-001 Wholesale, CTS-001 Retail, IMH-001 Wholesale). Repeating last year's replenishment pattern adds an **estimated** 6,512 units, projected to land by Jul 13 *(observable history; estimated, not confirmed open orders)*.
+- **Therefore, conditionally:** if the estimated replenishment arrives as modelled, the Step 5 engine escalates none: **0 ESCALATE, 7 PROTECT, 2 HOLD**. With zero replenishment it gives the published list: **3 ESCALATE, 6 PROTECT**. Both are in the outputs. **A planner must confirm open-order quantities and receipt dates before the conditional calls replace the published escalation list.** The Jul 13 check only shows the projected dates fit the 3-week replenishment lead time; it says nothing about supplier commitments.
+- **Check:** Step 8's error-band queue (0 ESCALATE, 1 WATCH, 5 PROTECT, 3 no action) agrees with the conditional calls on 7 of 9 series. The two differences come from tests only one of them runs: the forecast-error band (APS-001 Wholesale on watch) and the severe-weather case (IMH-001 Retail protected).
+- **Sensitivity, not assurance:** cutting every series' estimate by 29.5% (the worst backtest series error) brings back no escalation, nor does landing it all in the last week of the window. That is one scenario, not a bound. The estimate's week-by-week error by series was 57–71% in the backtests, and the series-level shortfall reached 46% (APS-001 Wholesale received 54% of its estimate in PY2024). APS-001 Wholesale escalates again if less than 30% of its 183 estimated units arrive; CTS-001 Retail below 10% and IMH-001 Wholesale below 6.5%. No backtest year fell that low, but there are only three years per series.
 
 **5. Release launch reserve on a channel-mix rule.**
 - **I found:** the launch bought 21% more than latent demand, yet ECOM lost 159 units while a 991-unit reserve sat idle.
@@ -147,7 +147,7 @@ The recommendation uses observable data only; truth is used here to score it.
 | 92% service target; 2.5-week safety stock; 8-week excess threshold | Policy assumptions, not derived from economics | Yes, for which series are flagged |
 | 50% over-buy guardrail | Policy assumption, to set with finance | Yes, for CTS-001 ECOM |
 | Early shipping, order-change windows, supplier capacity, MOQ | Not modelled | Yes: the +10,339 scenario is indicative until confirmed |
-| In-transit replenishment repeats last year's pattern | Backtest series error 15–30%; all of it lands in weeks 1–3 | No: no escalation returns at ±30%. Yes for protect vs hold in 3 series |
+| Replenishment repeats last year's pattern (an estimate, not confirmed open orders) | Backtest series error 15–30%, series-week error 57–71%; projected arrivals all in weeks 1–3 | Yes, until confirmed: zero replenishment gives 3 escalations. A 29.5% cut gives none, but that is one scenario, not a bound. Protect vs hold changes in 3 series |
 | Lost demand is fully lost (no substitution) | Simplification | Lost revenue is an upper bound |
 | Wholesale modelled as weekly demand | Simplification; real wholesale is largely pre-booked | Wholesale numbers are the least reliable |
 | Style level only; no sizes or colours | Scope | Buys are set by style, not style-colour-size |
@@ -161,7 +161,7 @@ python -m pip install -r requirements-dev.txt     # pinned, Python 3.13
 python -m playwright install chromium             # for the PDF brief
 python 04_scripts/run_pipeline.py --check         # rebuilds weather, Steps 4B–8 and the brief, and fails if any committed output changes
 python -m pytest -q                               # supply view, Step 8 numbers, brief, app, source data
-python -m streamlit run 07_streamlit_app/app.py   # planning app on the corrected 13-week plan
+python -m streamlit run 07_streamlit_app/app.py   # planning app: 13-week plan with estimated replenishment, zero-replenishment comparison
 ```
 
 Every script uses paths relative to the repository. Two pieces were never committed:

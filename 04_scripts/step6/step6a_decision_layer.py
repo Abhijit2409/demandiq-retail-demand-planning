@@ -15,7 +15,10 @@ from pathlib import Path
 # layer that answers four planning questions:
 #
 #   1. What demand are we planning for (next 13 weeks)?
-#   2. Can current inventory + committed supply protect service?
+#   2. Can current inventory + planned supply protect service?
+#      (planned = committed seasonal drops + ESTIMATED replenishment;
+#      the estimate is not confirmed open orders, so the zero-
+#      replenishment calls are carried alongside for comparison)
 #   3. Where are the important service / inventory risks?
 #   4. What should the planner do?
 #
@@ -56,6 +59,12 @@ parser.add_argument(
     default=PROJECT_DIR / "05_outputs" / "ibp_decisions" / "DemandIQ_Step5_IBP_Decision_Plan.csv",
 )
 parser.add_argument(
+    "--zero-replenishment-file",
+    type=Path,
+    default=PROJECT_DIR / "05_outputs" / "v1_published_plan" / "DemandIQ_Step5_IBP_Decision_Plan.csv",
+    help="Step 5 plan with zero replenishment (the published v1 list), for comparison.",
+)
+parser.add_argument(
     "--output-dir",
     type=Path,
     default=PROJECT_DIR / "05_outputs" / "decision_layer",
@@ -63,6 +72,7 @@ parser.add_argument(
 ARGS = parser.parse_args()
 
 STEP5_FILE = ARGS.step5_file
+ZERO_REPLENISHMENT_FILE = ARGS.zero_replenishment_file
 
 OUTPUT_DIR = ARGS.output_dir
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -113,13 +123,36 @@ for path in (STEP4D_FILE, STEP5_FILE):
 forecast_4d = pd.read_csv(STEP4D_FILE, parse_dates=["forecast_week_start"])
 step5 = pd.read_csv(STEP5_FILE, parse_dates=["forecast_week_start"])
 
-# Plans written before the supply-view fix carry seasonal drops only.
-if "committed_seasonal_receipt_units" not in step5.columns:
-    step5["committed_seasonal_receipt_units"] = step5["committed_receipt_units"]
-    step5["committed_replenishment_receipt_units"] = 0.0
-    step5["supply_view"] = "SEASONAL_DROPS_ONLY"
+
+
+def add_supply_fields(plan):
+    """Plans written before the supply-view fix carry seasonal drops only."""
+    if "estimated_replenishment_receipt_units" not in plan.columns:
+        plan["estimated_replenishment_receipt_units"] = 0.0
+        plan["planned_receipt_units"] = plan["committed_receipt_units"]
+        plan["supply_view"] = "SEASONAL_DROPS_ONLY"
+        plan["replenishment_receipt_provenance"] = "NONE COUNTED (ZERO REPLENISHMENT)"
+        plan["replenishment_confirmation_status"] = "NOT_APPLICABLE"
+        plan["call_condition"] = (
+            "ZERO-REPLENISHMENT VIEW: THE PUBLISHED (V1) ESCALATION LIST"
+        )
+    return plan
+
+
+step5 = add_supply_fields(step5)
+
+if not ZERO_REPLENISHMENT_FILE.exists():
+    raise FileNotFoundError(
+        f"Zero-replenishment comparison plan not found:\n{ZERO_REPLENISHMENT_FILE}"
+    )
+zero_plan = add_supply_fields(
+    pd.read_csv(ZERO_REPLENISHMENT_FILE, parse_dates=["forecast_week_start"])
+)
+if (zero_plan["estimated_replenishment_receipt_units"] != 0).any():
+    raise RuntimeError("The comparison plan must count zero replenishment.")
 
 SUPPLY_VIEW = step5["supply_view"].iloc[0]
+USES_ESTIMATE = bool(step5["estimated_replenishment_receipt_units"].sum() > 0)
 PLAN_AS_OF_DATE = step5["forecast_week_start"].min().strftime("%Y-%m-%d")
 
 print("=" * 92)
@@ -208,8 +241,8 @@ agg = step5.groupby(GROUP).agg(
     severe_13w_demand_units=("severe_scenario_forecast_units", "sum"),
     base_13w_projected_shipments_units=("base_shipped_units", "sum"),
     forward_committed_receipts_13w=("committed_receipt_units", "sum"),
-    forward_seasonal_receipts_13w=("committed_seasonal_receipt_units", "sum"),
-    forward_in_transit_replenishment_13w=("committed_replenishment_receipt_units", "sum"),
+    forward_estimated_replenishment_13w=("estimated_replenishment_receipt_units", "sum"),
+    forward_planned_receipts_13w=("planned_receipt_units", "sum"),
     weekly_below_target_count=(  # for QA cross-check vs weeks_below_service_target
         "base_fill_rate",
         lambda s: int((s < SERVICE_TARGET_FILL_RATE).sum()),
@@ -247,7 +280,7 @@ series = (
     .join(agg[[
         "base_13w_demand_units", "mild_13w_demand_units", "severe_13w_demand_units",
         "forward_committed_receipts_13w",
-        "forward_seasonal_receipts_13w", "forward_in_transit_replenishment_13w",
+        "forward_estimated_replenishment_13w", "forward_planned_receipts_13w",
     ]])
     .join(ending_safety)
     .reset_index()
@@ -269,7 +302,7 @@ series = series[[
     "ending_safety_stock_units", "base_safety_gap_units",
     # supply / options
     "forward_committed_receipts_13w",
-    "forward_seasonal_receipts_13w", "forward_in_transit_replenishment_13w",
+    "forward_estimated_replenishment_13w", "forward_planned_receipts_13w",
     "chase_capacity_units",
     "recommended_reallocation_units", "recommended_chase_release_units",
     "contingency_chase_option_units",
@@ -280,6 +313,23 @@ series = series[[
     "severe_13w_lost_revenue_opportunity_cad",
     "base_13w_carrying_cost_proxy_cad",
 ]].sort_values(["sku_id", "channel_id"]).reset_index(drop=True)
+
+# Zero-replenishment comparison (the published v1 calls), per series.
+zero_calls = (
+    zero_plan.sort_values(GROUP + ["horizon_week"])
+    .groupby(GROUP)[["priority_tier", "risk_type", "planner_action"]]
+    .first()
+    .add_prefix("zero_replenishment_")
+    .reset_index()
+)
+series = series.merge(zero_calls, on=GROUP, how="left", validate="one_to_one")
+series["call_depends_on_estimated_replenishment"] = (
+    series["planner_action"] != series["zero_replenishment_planner_action"]
+).astype(int)
+for column in (
+    "replenishment_confirmation_status", "call_condition",
+):
+    series[column] = step5[column].iloc[0]
 
 series["data_classification"] = "DERIVED"
 series["provenance"] = SOURCE_NOTE
@@ -294,9 +344,9 @@ weekly = step5[[
     # demand
     "base_forecast_units",
     "mild_scenario_forecast_units", "severe_scenario_forecast_units",
-    # supply: total = seasonal drops + in-transit replenishment
+    # supply: planned = committed seasonal drops + estimated replenishment
     "committed_receipt_units",
-    "committed_seasonal_receipt_units", "committed_replenishment_receipt_units",
+    "estimated_replenishment_receipt_units", "planned_receipt_units",
     # base inventory flow (frozen simulation outputs)
     "base_beginning_inventory_units", "base_return_restock_units",
     "base_available_units", "base_shipped_units", "base_lost_demand_units",
@@ -353,8 +403,16 @@ immediate_chase = float(first_per_series["recommended_chase_release_units"].sum(
 immediate_reallocation = float(first_per_series["recommended_reallocation_units"].sum())
 exception_series = int(series["weekly_service_exception_flag"].sum())
 
+zero_first = zero_plan.sort_values(GROUP + ["horizon_week"]).groupby(GROUP).first()
+zero_action_counts = zero_first["planner_action"].value_counts()
+zero_escalations = "; ".join(
+    f"{sku} {channel}"
+    for (sku, channel) in zero_first.index[zero_first["planner_action"] == "ESCALATE"]
+)
+
 portfolio_decision_status = (
-    f"{'ACTION REQUIRED' if tier_counts.get('P1', 0) else 'NO ESCALATION'} - "
+    ("IF ESTIMATED REPLENISHMENT ARRIVES AS MODELLED: " if USES_ESTIMATE else "")
+    + f"{'ACTION REQUIRED' if tier_counts.get('P1', 0) else 'NO ESCALATION'} - "
     + " + ".join(
         f"{n} {action}" for action, n in sorted(action_counts.items())
     )
@@ -363,6 +421,13 @@ portfolio_decision_status = (
     f"{exception_series} series with 2+ weeks below target; "
     f"{immediate_chase:,.0f} chase and {immediate_reallocation:,.0f} "
     f"reallocation units released automatically"
+    + (
+        "; WITH ZERO REPLENISHMENT (PUBLISHED LIST): "
+        + " + ".join(f"{n} {a}" for a, n in sorted(zero_action_counts.items()))
+        + "; CONFIRM OPEN-ORDER QUANTITIES AND RECEIPT DATES BEFORE REPLACING "
+        "THE PUBLISHED ESCALATION LIST"
+        if USES_ESTIMATE else ""
+    )
 )
 
 exec_row = {
@@ -382,12 +447,10 @@ exec_row = {
         first_per_series["opening_inventory_units"].sum()
     ),
     "committed_receipts_13w_units": float(step5["committed_receipt_units"].sum()),
-    "committed_seasonal_receipts_13w_units": float(
-        step5["committed_seasonal_receipt_units"].sum()
+    "estimated_replenishment_13w_units": float(
+        step5["estimated_replenishment_receipt_units"].sum()
     ),
-    "in_transit_replenishment_13w_units": float(
-        step5["committed_replenishment_receipt_units"].sum()
-    ),
+    "planned_receipts_13w_units": float(step5["planned_receipt_units"].sum()),
     "total_chase_capacity_units": float(
         first_per_series["chase_capacity_units"].sum()
     ),
@@ -403,6 +466,14 @@ exec_row = {
     "protect_series": int(action_counts.get("PROTECT", 0)),
     "hold_series": int(action_counts.get("HOLD", 0)),
     "total_series": int(series.shape[0]),
+    # comparison: zero replenishment (the published v1 list)
+    "zero_replenishment_escalate_series": int(zero_action_counts.get("ESCALATE", 0)),
+    "zero_replenishment_protect_series": int(zero_action_counts.get("PROTECT", 0)),
+    "zero_replenishment_hold_series": int(zero_action_counts.get("HOLD", 0)),
+    "zero_replenishment_escalations": zero_escalations,
+    "series_whose_call_depends_on_estimate": int(
+        series["call_depends_on_estimated_replenishment"].sum()
+    ),
     # protection / immediate action (frozen governance)
     "base_safety_stock_protection_gap_units": float(
         first_per_series["base_protection_gap_units"].sum()
@@ -446,6 +517,9 @@ exec_row = {
     "economic_value_basis": "planning exposure proxy (not accounting profit)",
     "provenance": SOURCE_NOTE,
     "supply_view": SUPPLY_VIEW,
+    "replenishment_receipt_provenance": step5["replenishment_receipt_provenance"].iloc[0],
+    "replenishment_confirmation_status": step5["replenishment_confirmation_status"].iloc[0],
+    "call_condition": step5["call_condition"].iloc[0],
     "plan_as_of_date": PLAN_AS_OF_DATE,
 }
 executive = pd.DataFrame([exec_row])
@@ -490,15 +564,25 @@ qa["Exec demand == weekly demand sum"] = np.isclose(
 qa["Exec shipments == weekly base_shipped sum"] = np.isclose(
     base_ship, float(weekly["base_shipped_units"].sum()), atol=1e-6
 )
-qa["Committed receipts = seasonal + in-transit replenishment"] = bool(np.allclose(
-    step5["committed_receipt_units"],
-    step5["committed_seasonal_receipt_units"]
-    + step5["committed_replenishment_receipt_units"],
+qa["Planned receipts = committed seasonal + estimated replenishment"] = bool(np.allclose(
+    step5["planned_receipt_units"],
+    step5["committed_receipt_units"]
+    + step5["estimated_replenishment_receipt_units"],
     atol=1e-6,
 ))
 qa["Exec receipts == weekly receipts sum"] = np.isclose(
+    exec_row["planned_receipts_13w_units"],
+    float(weekly["planned_receipt_units"].sum()), atol=1e-6
+) and np.isclose(
     exec_row["committed_receipts_13w_units"],
     float(weekly["committed_receipt_units"].sum()), atol=1e-6
+)
+qa["Estimated replenishment carries an unconfirmed status"] = (
+    not USES_ESTIMATE
+    or exec_row["replenishment_confirmation_status"] == "UNCONFIRMED_ESTIMATE"
+)
+qa["Zero-replenishment comparison covers every series"] = bool(
+    series["zero_replenishment_planner_action"].notna().all()
 )
 
 # ---- decision governance (rules, not expected counts) ----

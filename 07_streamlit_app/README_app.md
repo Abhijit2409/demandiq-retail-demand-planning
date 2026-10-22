@@ -13,12 +13,17 @@ governed risk classifications into a five-page planner experience.
 
 Move a planner / IBP leader / reviewer through:
 `Portfolio → Demand Outlook → Service / Inventory Risk → SKU × Channel Decision → Governance`,
-around one governed story. With in-transit replenishment counted as supply,
-13-week service holds in every week, but most series finish with thin
-safety-stock coverage. The corrected plan is **0 ESCALATE, 7 PROTECT, 2 HOLD**,
-with **no automatic chase release**. The pages word their headlines from the
-data, so they also render the v1 plan as first published (seasonal drops only:
-3 ESCALATE, 6 PROTECT), kept in `05_outputs/v1_published_plan/`.
+around one governed story. Supply is the committed seasonal drops plus an
+**estimate** of replenishment receipts (last year's replenishment shifted 52
+weeks, plus SKU growth; 6,512 units). The estimate is **not confirmed open
+orders**. If it arrives as modelled, 13-week service holds in every week, most
+series finish with thin safety-stock coverage, and the plan is
+**0 ESCALATE, 7 PROTECT, 2 HOLD**, with **no automatic chase release**. With
+zero replenishment the plan is the published list, **3 ESCALATE, 6 PROTECT**
+(kept in `05_outputs/v1_published_plan/`); the Portfolio banner shows both. A
+planner must confirm open-order quantities and receipt dates before the
+conditional calls replace the published escalation list. The pages word their
+headlines from the data, so they also render the v1 plan on its own.
 
 ## Structure
 

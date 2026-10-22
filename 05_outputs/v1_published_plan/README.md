@@ -1,6 +1,6 @@
-# v1 published plan (superseded)
+# v1 published plan: the zero-replenishment view
 
-These four files are the Step 5 and Step 6A outputs as first published, byte-for-byte as they were in draft PR #1 (commit `7fce826`). They are kept for audit and because Step 8's 13-week counterfactuals analyse this plan.
+These four files are the Step 5 and Step 6A outputs as first published, byte-for-byte as they were in draft PR #1 (commit `7fce826`). They are kept for audit, because Step 8's 13-week counterfactuals analyse this plan, and because they stay the published escalation list until open orders are confirmed (below). Step 6A reads this plan as its zero-replenishment comparison.
 
 | File | Step |
 | --- | --- |
@@ -9,17 +9,19 @@ These four files are the Step 5 and Step 6A outputs as first published, byte-for
 | `DemandIQ_Step6A_Series_Decision_Summary.csv` | Step 6A KPI layer |
 | `DemandIQ_Step6A_Weekly_Planning_Trajectory.csv` | Step 6A KPI layer |
 
-## Why it was superseded
+## How it relates to the current plan
 
-v1 counted only the seasonal drops as forward supply. It left out the replenishment already in transit at the forecast origin, which lands in the first three weeks of the window (6,512 units by July 13, 2026). Without it, three series showed repeated weekly misses in August and September and were escalated.
+v1 counted only the seasonal drops as forward supply, so it assumed zero replenishment. Three series then showed repeated weekly misses in August and September and were escalated (3 ESCALATE, 6 PROTECT): APS-001 Wholesale, CTS-001 Retail and IMH-001 Wholesale.
 
-The corrected plan in `05_outputs/ibp_decisions/` and `05_outputs/decision_layer/` counts that replenishment. It escalates no series: 7 PROTECT and 2 HOLD. `05_outputs/peak_season_diagnosis/DemandIQ_Step8B_Step5_Reconciliation.csv` explains every series-level difference.
+The plan in `05_outputs/ibp_decisions/` and `05_outputs/decision_layer/` adds an **estimate** of replenishment receipts: last year's replenishment receipts shifted 52 weeks, plus SKU growth, 6,512 units projected to land by July 13, 2026. These are **not confirmed open orders**. The July 13 check validates the projected dates against the 3-week replenishment lead time, not supplier commitments. If the estimate arrives as modelled, no series escalates: 0 ESCALATE, 7 PROTECT, 2 HOLD. `05_outputs/peak_season_diagnosis/DemandIQ_Step8B_Step5_Reconciliation.csv` explains every series-level difference.
 
-| Call | v1 (seasonal drops only) | Corrected (plus in-transit replenishment) |
+| Call | Zero replenishment (v1, published) | If the estimated replenishment arrives as modelled |
 | --- | --- | --- |
 | ESCALATE | 3 | 0 |
 | PROTECT | 6 | 7 |
 | HOLD | 0 | 2 |
+
+A planner must confirm open-order quantities and receipt dates before the right-hand calls replace this published escalation list. Until then, both views stand side by side.
 
 ## Reproducing it
 
@@ -29,6 +31,6 @@ The current Step 5 code reproduces v1 when run with the old supply view:
 python 04_scripts/step5/step5_ibp_decision_engine.py --supply-view seasonal_only --output-dir <folder>
 ```
 
-Every one of v1's 157 columns comes out identical. The run adds three columns: the seasonal/replenishment split and the supply-view label. `tests/test_supply_view.py` checks this on every CI run.
+Every one of v1's 157 columns comes out identical. The run adds six columns: the estimated and planned receipts (zero replenishment, so planned equals committed), the supply-view label, and the provenance, confirmation-status and call-condition labels. `tests/test_supply_view.py` checks this on every CI run.
 
 The executive summary here still carries its original `generated_at` wall-clock stamp. Current Step 6A runs write `plan_as_of_date` instead, so rebuilds are byte-identical.

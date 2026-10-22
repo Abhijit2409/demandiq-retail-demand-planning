@@ -58,7 +58,7 @@ Peak-season fill fell from 85.9% to 78.1% between PY2022 and PY2026, while annua
 
 - 83% of lost units fall in Dec–Feb. The original 13-week summer window held 1.1% of lost demand.
 - In that summer window, weather scenarios and stockout correction change none of the nine planner decisions. The supply assumption changes six, which is why the decision belongs in the peak.
-- The published 13-week plan escalated three series. Once the planning engine counts the replenishment already in transit at the plan date (6,512 units), it escalates none: 0 escalate, 7 protect, 2 hold. An independent error-band check agrees on 7 of 9 series.
+- The published 13-week plan assumed zero replenishment and escalated three series. Adding an estimate of replenishment (6,512 units, last year's pattern shifted 52 weeks, not confirmed open orders), the planning engine escalates none if the estimate arrives as modelled: 0 escalate, 7 protect, 2 hold. A planner must confirm open orders and receipt dates before that replaces the published list. An independent error-band check agrees on 7 of 9 series.
 - Stockout correction lifts Dec–Feb demand by 21% (the true gap is 28%), so the recommended change is conservative.
 - The top 20 of 81 SKU × region × channel cells by true lost revenue hold 60.2% of it. The observable selection, the top 20 by stockout days, captures 53.4% (rank correlation 0.90).
 - At the June 29 planning date the decision was already urgent. 22-week orders had to be committed by Jun 29 to Jul 13 to land before the first stockouts; otherwise chase alone could have landed about 4,355 units.
@@ -80,7 +80,7 @@ One command rebuilds every output from the repository, and CI fails if any commi
 
 ### Images
 
-Replace the app screenshots with the three Step 8 charts in `08_assets/charts/`. The app screenshots show the superseded summer escalation list.
+Replace the app screenshots with the three Step 8 charts in `08_assets/charts/`. The app screenshots show the zero-replenishment summer escalation list (3 escalate), without the conditional comparison.
 
 - `step8_fill_trend.png`: Dec–Feb fill fell from 86% to 78%
 - `step8_lost_demand_by_month.png`: 81% of lost demand falls in Dec–Feb
@@ -89,6 +89,6 @@ Replace the app screenshots with the three Step 8 charts in `08_assets/charts/`.
 ### Replace on the current page
 
 - "95.68% of demand lost to stockouts recovered": a five-year net figure; the latest year recovered 79%
-- "3 / 9 series flagged as weekly service risks": these disappear once replenishment is counted
-- "3 ESCALATE, 6 PROTECT": superseded. The corrected plan escalates none (0 escalate, 7 protect, 2 hold).
+- "3 / 9 series flagged as weekly service risks": these disappear if the estimated replenishment arrives as modelled
+- "3 ESCALATE, 6 PROTECT": this is the zero-replenishment view. Show it next to the conditional result (0 escalate, 7 protect, 2 hold, if the estimated replenishment arrives) and say open orders are not yet confirmed.
 - "a work list with owners": now true only in the Step 8 decision table, so link there

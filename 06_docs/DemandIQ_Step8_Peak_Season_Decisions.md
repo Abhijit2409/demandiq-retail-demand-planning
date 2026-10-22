@@ -48,20 +48,22 @@ Deadlines are as evaluated at the June 29, 2026 planning date; all have passed.
 | 1 | Plan the peak on reconstructed demand, moving stock before buying | Indicative +10,339 units: 4,574 moved, 5,613 new, 152 accepted gap | Supplier commitment by Jun 29 (6 series) or Jul 13, 2026 (3 series) · planner proposes, Manager of Merchandise Planning approves, supply planning confirms early shipping and capacity | No new units where over-buy exposure ≥ 50% of estimated lost revenue (a policy assumption to set with finance); season-end cover ≤ 8 weeks | Direction: high (calls and priority match the simulation 9 of 9). Size: indicative; early shipping and supplier capacity are unconfirmed |
 | 2 | Size chase from the peak gap, not from early shipments | Fallback floor of about 4,355 units within last season's unused capacity; above that, needs supplier capacity | Chase order by Sep 21 (6 series) or Oct 5, 2026 (3 series), so it lands before the first stockout · planner with supply planning | Chase ≤ 8% of commitment | Medium: last season's headroom is only an indicator |
 | 3 | Rank exceptions by stockout days, by SKU × region × channel | Top 20 of 81 cells by stockout days (ties broken by sales) | Each monthly S&OP · Demand Planner | – | Good: those 20 cells capture 53.4% of true lost revenue, against 60.2% for the true top 20 (rank correlation 0.90; 15 of 20 cells shared) |
-| 4 | Replace the summer escalation list | Corrected Step 5, counting 6,512 in-transit units: 0 ESCALATE, 7 PROTECT, 2 HOLD. The error-band check adds 1 WATCH (APS-001 Wholesale, short only if demand runs 18% above forecast). The published list had 3 ESCALATE | Weekly S&OE · planner decides, supply confirms the in-transit orders | Re-check weekly as replenishment confirms | Medium: the in-transit estimate repeats last year's pattern. No escalation returns within its backtest error; the protect/hold call for 3 series does |
+| 4 | Re-test the summer escalation list against replenishment | If the estimated 6,512 replenishment units arrive as modelled: 0 ESCALATE, 7 PROTECT, 2 HOLD. The error-band check adds 1 WATCH (APS-001 Wholesale, short only if demand runs 18% above forecast). With zero replenishment: 3 ESCALATE, 6 PROTECT, the published list | Weekly S&OE · the planner confirms open-order quantities and receipt dates before the conditional calls replace the published list | Keep the published escalations until confirmed; re-check weekly as receipts confirm | Low until confirmed: the estimate repeats last year's pattern and is not an order book. A 29.5% cut brings back no escalation, but that is one scenario; series-week error was 57–71% |
 | 5 | Launch reserve-release rule | Hold the 991-unit reserve (12% of the 8,259-unit buy) centrally; release it to any channel running 5+ pp above planned mix at W1–W2 | Launch checkpoints W1–W2 · planner with merchants | Total launch inventory unchanged | Medium: one seeded launch. The rule fires at W1 (ECOM +5.4 pp) |
 
-## The 13-week queue after the supply fix
+## The 13-week queue with and without estimated replenishment
 
-The published 13-week plan (v1) counted only the seasonal drops as supply, and it escalated three series for August–September misses. Step 5 now also counts replenishment already in transit at the forecast origin.
+The published 13-week plan (v1) counted only the seasonal drops as supply, so it assumed zero replenishment, and it escalated three series for August–September misses. Step 5 now adds an **estimate** of replenishment receipts.
 
-- **Estimate.** Last year's replenishment in the same weeks, shifted 52 weeks and grown.
-- **Timing.** Under the replenishment policy, nothing can be ordered inside the window, so all **6,512 units** arrive by **Jul 13, 2026**, ahead of the weeks they serve.
-- **Result.** Service then holds in every week and no series is escalated.
+- **Estimate, not orders.** Last year's replenishment receipts in the same weeks, shifted 52 weeks and grown by SKU: **6,512 units**. These are not confirmed open orders.
+- **Projected timing.** Under the replenishment policy nothing can be ordered inside the window, so if last year's pattern repeats, the units land by **Jul 13, 2026**, ahead of the weeks they serve. That check validates the projected dates against the policy, not supplier commitments.
+- **Result, if the estimate arrives as modelled.** Service holds in every week and no series is escalated: **0 ESCALATE, 7 PROTECT, 2 HOLD**.
+- **Result with zero replenishment.** The published list: **3 ESCALATE, 6 PROTECT** (APS-001 Wholesale, CTS-001 Retail, IMH-001 Wholesale).
+- **Before acting.** A planner must confirm open-order quantities and receipt dates before the conditional calls replace the published escalation list.
 
-Step 8B (`DemandIQ_Step8B_Step5_Reconciliation.csv`) compares that corrected engine with Step 8's error-band queue, series by series:
+Step 8B (`DemandIQ_Step8B_Step5_Reconciliation.csv`) compares the engine's conditional calls with Step 8's error-band queue, series by series:
 
-| Series | Published (v1) | Step 5, corrected | Step 8, error band | Why they differ |
+| Series | Zero replenishment (v1, published) | Step 5, if the estimate arrives as modelled | Step 8, error band | Why they differ |
 | --- | --- | --- | --- | --- |
 | APS-001 ECOM | PROTECT | PROTECT (cover 2.24 wk) | PROTECT | – |
 | APS-001 Retail | PROTECT | PROTECT (1.64 wk) | PROTECT | – |
@@ -76,12 +78,13 @@ Step 8B (`DemandIQ_Step8B_Step5_Reconciliation.csv`) compares that corrected eng
 
 Step 8 holds restocked returns at the v1 values. Step 5 recomputes them from the higher shipments, so ending cover differs by at most 0.015 weeks. In S&OE, run the stricter of the two calls: 1 WATCH (APS-001 Wholesale, also below cover policy), 6 PROTECT, 2 no action.
 
-**How firm is it?**
+**How firm is it?** Conditional, and the sensitivity tests below do not make it assured.
 
-- **Backtest.** The in-transit estimate was backtested on three earlier plan years. Its series-level error was 15–30%, and 100% of the replenishment landed in weeks 1–3 each year.
-- **Volume stress.** At ±29.5% (the worst series error), no series escalates, but the protect/hold call flips for CTS-001 ECOM, CTS-001 Wholesale and IMH-001 Retail.
-- **Timing stress.** Moving every in-transit unit to the last possible week changes nothing.
-- **Margin on the escalations.** The three v1 escalations clear with 6%, 10% and 30% of the estimated in-transit units.
+- **Backtest.** The replenishment estimate was backtested on three earlier plan years. Its series-level error was 15–30% and its series-week error 57–71%; 100% of the replenishment landed in weeks 1–3 each year.
+- **Per series.** Actual arrivals ran from 54% to 418% of the estimate across the 27 series-years. Two series-years fell below 70.5% (APS-001 Wholesale, PY2024, 54%; IMH-001 Retail, PY2025, 58%), so the uniform stress below was not the worst case for every series.
+- **Volume stress.** Cutting every series' estimate by 29.5% (the worst series error, so 70.5% arrives) brings back no escalation, but the protect/hold call flips for CTS-001 ECOM, CTS-001 Wholesale and IMH-001 Retail. This is one scenario, not a bound.
+- **Timing stress.** Landing each series' whole estimate on Jul 13, or in the last week of the window (Sep 21), brings back no escalation either. Quantity matters more than timing inside the window, provided the units arrive at all.
+- **Margin on the escalations.** The three published escalations clear only if at least 30.0% (APS-001 Wholesale, 183 estimated units), 10.1% (CTS-001 Retail) and 6.5% (IMH-001 Wholesale) of their estimates arrive. The 29.5% stress cut is a different measure: it leaves 70.5% arriving, 40 points above APS-001 Wholesale's threshold. No backtest year fell below a threshold, but three years per series is a thin record.
 
 ## Peak scenario by series (observable inputs only)
 

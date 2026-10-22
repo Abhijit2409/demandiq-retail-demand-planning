@@ -53,7 +53,10 @@ def test_key_facts_match_an_independent_reading_of_the_csvs(brief):
     assert f["top20_observable"] == f"{float(head['Top 20 cells by stockout days (observable selection), share of true lost revenue']):.1f}%" == "53.4%"
     assert f["top20_truth"] == "60.2%"
     assert (f["step5_escalate"], f["step5_protect"], f["step5_hold"], f["watch"]) == ("0", "7", "2", "1")
-    assert f["in_transit"] == f"{float(s8b['In-transit replenishment counted in the 13-week supply']):,.0f}" == "6,512"
+    est = "Estimated replenishment in the 13-week projection (unconfirmed, not open orders)"
+    assert f["est_replen"] == f"{float(s8b[est]):,.0f}" == "6,512"
+    assert (f["v1_escalations"], f["replen_week_error"], f["replen_stress"], f["replen_needed"]) == (
+        "3", "57–71%", "29.5%", "30%")
     assert f["window_share"] == "1.1%"
 
 

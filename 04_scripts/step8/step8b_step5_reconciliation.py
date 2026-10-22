@@ -1,16 +1,24 @@
-"""DemandIQ Step 8B: reconcile Step 5's corrected supply view with Step 8's S&OE queue.
+"""DemandIQ Step 8B: reconcile Step 5's supply views with Step 8's S&OE queue.
 
-Step 5 now counts replenishment already in transit at the forecast origin
-(last year's replenishment in the same weeks, shifted 52 weeks and grown).
-This script checks that change and explains how its calls relate to Step 8:
+Step 5 now adds an ESTIMATE of replenishment receipts to the seasonal drops:
+last year's replenishment receipts in the same weeks, shifted 52 weeks and
+grown by SKU. The estimate is not a list of confirmed open orders. Its timing
+check validates the projected dates against the Step 3A policy, not supplier
+commitments. So Step 5's calls are conditional on the estimate arriving as
+modelled, and the zero-replenishment calls (the published v1 list) stay the
+comparison until a planner confirms open-order quantities and receipt dates.
 
-1. Backtests the replenishment proxy on the earlier plan years.
+This script:
+
+1. Backtests the replenishment estimate on the earlier plan years, for the
+   portfolio and for each series.
 2. Re-simulates Step 5's inventory flow and risk hierarchy from Step 5's own
-   output. The replica must reproduce the corrected plan, and, with the
-   replenishment removed, the v1 plan as first published.
-3. Stresses the replenishment estimate by the proxy's worst backtest error and
-   by its latest possible arrival, and finds how much of it each series needs
-   to avoid escalation.
+   output. The replica must reproduce the plan with the estimate and, with
+   the estimate removed, the published zero-replenishment plan.
+3. Stresses the estimate: a uniform cut by the worst backtest series WAPE, a
+   uniform uplift, all units on the last projected date, all units in the
+   last week of the window; and finds the share of its estimate each series
+   needs to avoid escalation. These are scenarios, not bounds.
 4. Compares Step 5's calls with Step 8's error-band queue series by series.
    Every difference must match a known mechanism, or the script stops.
 
@@ -33,6 +41,7 @@ INVENTORY_FILE = ROOT / "02_data/processed/DemandIQ_Step3C_v5_Seasonal_Buy_Inven
 STEP5_PLAN_FILE = ROOT / "05_outputs/ibp_decisions/DemandIQ_Step5_IBP_Decision_Plan.csv"
 STEP5_V1_FILE = ROOT / "05_outputs/v1_published_plan/DemandIQ_Step5_IBP_Decision_Plan.csv"
 STEP8_QUEUE_FILE = OUT_DIR / "DemandIQ_Step8_Corrected_SOE_Queue.csv"
+ESTIMATE_SUPPLY_VIEW = "SEASONAL_DROPS_PLUS_ESTIMATED_REPLENISHMENT"
 
 # Step 5 governed policy (Step 3A assumptions workbook).
 TARGET_FILL = 0.92
@@ -58,13 +67,8 @@ COVER_TOLERANCE_WEEKS = 0.005  # Step 5 rounds its output to 3 dp
 
 # --------------------------------------------------------------------------- 1. proxy backtest
 
-def replenishment_proxy_backtest() -> pd.DataFrame:
-    """Last year's replenishment in plan weeks 1-13, grown, against what arrived.
-
-    The first two plan years are excluded as targets: the simulation starts in
-    PY2022 with nothing in transit, so PY2022's weeks 1-3 hold no replenishment
-    and a PY2023 proxy built from them is zero by construction.
-    """
+def backtest_weeks() -> tuple[pd.DataFrame, list, np.ndarray]:
+    """Replenishment receipts in plan weeks 1-13 by plan year, with SKU growth factors."""
     inv = pd.read_csv(INVENTORY_FILE, usecols=["plan_year", "plan_week", "sku_id", "channel_id",
                                                "replenishment_receipt_units"])
     window = inv[inv.plan_week.between(1, FORECAST_WEEKS)]
@@ -72,9 +76,17 @@ def replenishment_proxy_backtest() -> pd.DataFrame:
     weekly = weekly.unstack("plan_year").fillna(0.0)
     years = sorted(weekly.columns)
     growth = 1 + weekly.index.get_level_values("sku_id").map(SKU_GROWTH).to_numpy()
+    # The first two plan years are excluded as targets: the simulation starts in
+    # PY2022 with no replenishment on order, so PY2022's weeks 1-3 hold none and a
+    # PY2023 estimate built from them is zero by construction.
+    return weekly, list(zip(years[1:], years[2:])), growth
 
+
+def replenishment_proxy_backtest() -> pd.DataFrame:
+    """Last year's replenishment in plan weeks 1-13, grown, against what arrived (portfolio)."""
+    weekly, pairs, growth = backtest_weeks()
     rows = []
-    for prior, target in zip(years[1:], years[2:]):
+    for prior, target in pairs:
         proxy_w = weekly[prior].to_numpy() * growth
         actual_w = weekly[target].to_numpy()
         totals = pd.DataFrame({"proxy": proxy_w, "actual": actual_w}, index=weekly.index).groupby(SERIES).sum()
@@ -91,6 +103,23 @@ def replenishment_proxy_backtest() -> pd.DataFrame:
             "basis": PLANNER,
         })
     return pd.DataFrame(rows)
+
+
+def replenishment_series_backtest() -> pd.DataFrame:
+    """Per series and plan year: units that arrived in weeks 1-13 as a share of the estimate."""
+    weekly, pairs, growth = backtest_weeks()
+    frames = []
+    for prior, target in pairs:
+        frame = pd.DataFrame({"estimate_units": weekly[prior].to_numpy() * growth,
+                              "actual_units": weekly[target].to_numpy()},
+                             index=weekly.index).groupby(SERIES).sum().reset_index()
+        frame.insert(0, "target_plan_year", target)
+        frame.insert(1, "estimate_source_plan_year", prior)
+        frames.append(frame)
+    out = pd.concat(frames, ignore_index=True)
+    out["actual_pct_of_estimate"] = out.actual_units / out.estimate_units * 100
+    out["basis"] = PLANNER
+    return out
 
 
 # --------------------------------------------------------------------------- 2. Step 5 replica
@@ -152,21 +181,24 @@ def risk_calls(plan: pd.DataFrame, receipts: pd.Series) -> pd.DataFrame:
 
 
 def receipts_at(plan: pd.DataFrame, scale: float) -> pd.Series:
-    """Seasonal drops plus the in-transit replenishment proxy scaled by `scale`."""
-    return plan.committed_seasonal_receipt_units + scale * plan.committed_replenishment_receipt_units
+    """Committed seasonal drops plus the estimated replenishment scaled by `scale`."""
+    return plan.committed_receipt_units + scale * plan.estimated_replenishment_receipt_units
 
 
-def receipts_latest_arrival(plan: pd.DataFrame) -> pd.Series:
-    """Seasonal drops plus each series' in-transit replenishment, all landing in the last in-transit week."""
-    replenishment = plan.committed_replenishment_receipt_units
-    last_week = plan.loc[replenishment > 0, "forecast_week_start"].max()
+def receipts_all_in_week(plan: pd.DataFrame, week: pd.Timestamp) -> pd.Series:
+    """Seasonal drops plus each series' whole replenishment estimate landing in `week`."""
+    replenishment = plan.estimated_replenishment_receipt_units
     series_total = replenishment.groupby([plan.sku_id, plan.channel_id]).transform("sum")
-    late = np.where(plan.forecast_week_start == last_week, series_total, 0.0)
-    return plan.committed_seasonal_receipt_units + pd.Series(late, index=plan.index)
+    late = np.where(plan.forecast_week_start == week, series_total, 0.0)
+    return plan.committed_receipt_units + pd.Series(late, index=plan.index)
+
+
+def last_projected_arrival(plan: pd.DataFrame) -> pd.Timestamp:
+    return plan.loc[plan.estimated_replenishment_receipt_units > 0, "forecast_week_start"].max()
 
 
 def escalation_threshold(plan: pd.DataFrame, sku: str, channel: str) -> float:
-    """Smallest share of the replenishment proxy that keeps the series out of P1 (0 if none needed)."""
+    """Smallest share of the replenishment estimate that keeps the series out of P1 (0 if none needed)."""
     one = plan[(plan.sku_id == sku) & (plan.channel_id == channel)]
 
     def is_p1(scale: float) -> bool:
@@ -193,20 +225,20 @@ def first_row(plan: pd.DataFrame) -> pd.DataFrame:
 
 
 def validate_replica(plan: pd.DataFrame, v1: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """The replica must reproduce Step 5's corrected calls and, without replenishment, the v1 calls."""
-    corrected = risk_calls(plan, receipts_at(plan, 1.0))
-    published = first_row(plan)
-    if not (corrected.risk_type.to_numpy() == published.risk_type.to_numpy()).all():
-        raise ValueError("Replica does not reproduce Step 5's corrected risk types.")
-    gap = np.abs(corrected.base_final_wos.to_numpy() - published.base_final_wos.to_numpy()).max()
+    """The replica must reproduce Step 5's calls with the estimate and, without it, the v1 calls."""
+    with_estimate = risk_calls(plan, receipts_at(plan, 1.0))
+    step5 = first_row(plan)
+    if not (with_estimate.risk_type.to_numpy() == step5.risk_type.to_numpy()).all():
+        raise ValueError("Replica does not reproduce Step 5's risk types with the estimate.")
+    gap = np.abs(with_estimate.base_final_wos.to_numpy() - step5.base_final_wos.to_numpy()).max()
     if gap > COVER_TOLERANCE_WEEKS:
         raise ValueError(f"Replica cover differs from Step 5 by {gap:.4f} weeks.")
 
-    seasonal_only = risk_calls(plan, receipts_at(plan, 0.0))
+    zero_replenishment = risk_calls(plan, receipts_at(plan, 0.0))
     v1_calls = first_row(v1)
-    if not (seasonal_only.risk_type.to_numpy() == v1_calls.risk_type.to_numpy()).all():
+    if not (zero_replenishment.risk_type.to_numpy() == v1_calls.risk_type.to_numpy()).all():
         raise ValueError("Replica without replenishment does not reproduce the v1 published calls.")
-    return corrected, seasonal_only
+    return with_estimate, zero_replenishment
 
 
 # --------------------------------------------------------------------------- 3-4. reconciliation
@@ -235,11 +267,12 @@ def explain(row: pd.Series) -> str:
         notes.append(
             f"Cover differs by {row.cover_difference_weeks:+.3f} weeks: Step 8 holds restocked "
             f"returns at the published plan's values, while Step 5 recomputes them from the "
-            f"higher shipments once replenishment is counted.")
+            f"higher shipments once the estimated replenishment is counted.")
     return " ".join(notes)
 
 
-def reconcile(plan: pd.DataFrame, v1: pd.DataFrame, stress: float) -> pd.DataFrame:
+def reconcile(plan: pd.DataFrame, v1: pd.DataFrame, stress: float,
+              series_backtest: pd.DataFrame) -> pd.DataFrame:
     queue = pd.read_csv(STEP8_QUEUE_FILE)
     step5 = first_row(plan)
     published = first_row(v1)
@@ -247,8 +280,9 @@ def reconcile(plan: pd.DataFrame, v1: pd.DataFrame, stress: float) -> pd.DataFra
     out = published[SERIES].copy()
     out["v1_published_tier"] = published.priority_tier.to_numpy()
     out["v1_published_action"] = published.planner_action.to_numpy()
-    out["in_transit_replenishment_units"] = (
-        plan.groupby(SERIES, sort=True).committed_replenishment_receipt_units.sum().to_numpy())
+    out["estimated_replenishment_units"] = (
+        plan.groupby(SERIES, sort=True).estimated_replenishment_receipt_units.sum().to_numpy())
+    out["replenishment_confirmation_status"] = plan.replenishment_confirmation_status.iloc[0]
     out["step5_risk_type"] = step5.risk_type.to_numpy()
     out["step5_priority_tier"] = step5.priority_tier.to_numpy()
     out["step5_action"] = step5.planner_action.to_numpy()
@@ -267,40 +301,66 @@ def reconcile(plan: pd.DataFrame, v1: pd.DataFrame, stress: float) -> pd.DataFra
     stresses = {
         "step5_tier_replenishment_low": receipts_at(plan, 1 - stress),
         "step5_tier_replenishment_high": receipts_at(plan, 1 + stress),
-        "step5_tier_replenishment_latest_arrival": receipts_latest_arrival(plan),
+        "step5_tier_replenishment_latest_arrival": receipts_all_in_week(plan, last_projected_arrival(plan)),
+        "step5_tier_replenishment_all_in_week_13": receipts_all_in_week(
+            plan, plan.forecast_week_start.max()),
     }
     for column, receipts in stresses.items():
         out[column] = risk_calls(plan, receipts).priority_tier.to_numpy()
     out["replenishment_stress_pct"] = stress * 100
-    out["share_of_proxy_needed_to_avoid_escalation_pct"] = [
+    out["share_of_estimate_needed_to_avoid_escalation_pct"] = [
         escalation_threshold(plan, r.sku_id, r.channel_id) * 100 for r in out.itertuples()]
+
+    by_series = series_backtest.groupby(SERIES, sort=True)
+    out["backtest_min_actual_pct_of_estimate"] = by_series.actual_pct_of_estimate.min().to_numpy()
+    out["backtest_max_actual_pct_of_estimate"] = by_series.actual_pct_of_estimate.max().to_numpy()
+    needed = out.set_index(SERIES).share_of_estimate_needed_to_avoid_escalation_pct
+    below = series_backtest.join(needed, on=SERIES)
+    below = below.actual_pct_of_estimate < below.share_of_estimate_needed_to_avoid_escalation_pct
+    out["backtest_years_below_needed_share"] = below.groupby(
+        [series_backtest.sku_id, series_backtest.channel_id], sort=True).sum().to_numpy()
+    out["backtest_years"] = by_series.size().to_numpy()
     out["explanation"] = out.apply(explain, axis=1)
     out["basis"] = PLANNER
     return out
 
 
-def summary_metrics(backtest: pd.DataFrame, rec: pd.DataFrame, plan: pd.DataFrame) -> pd.DataFrame:
+def summary_metrics(backtest: pd.DataFrame, series_backtest: pd.DataFrame, rec: pd.DataFrame,
+                    plan: pd.DataFrame) -> pd.DataFrame:
     def count(col: str, value: str) -> int:
         return int((rec[col] == value).sum())
 
     stress_cols = ["step5_tier_replenishment_low", "step5_tier_replenishment_high",
-                   "step5_tier_replenishment_latest_arrival"]
+                   "step5_tier_replenishment_latest_arrival", "step5_tier_replenishment_all_in_week_13"]
     changed = rec[stress_cols].ne(rec.step5_priority_tier, axis=0).any(axis=1)
     escalated_under_stress = int(rec[stress_cols].eq("P1").any(axis=1).sum())
     was_p1 = rec[rec.v1_published_tier == "P1"]
+    hardest = was_p1.loc[was_p1.share_of_estimate_needed_to_avoid_escalation_pct.idxmax()]
+    stress_arrival = 100 - rec.replenishment_stress_pct.iloc[0]
+    worse_than_stress = series_backtest[series_backtest.actual_pct_of_estimate < stress_arrival]
+    lowest = series_backtest.loc[series_backtest.actual_pct_of_estimate.idxmin()]
+    former = series_backtest.merge(was_p1[SERIES], on=SERIES)
     rows = [
-        ("In-transit replenishment counted in the 13-week supply", plan.committed_replenishment_receipt_units.sum(), "units"),
-        ("Last in-transit arrival", pd.to_datetime(plan.loc[plan.committed_replenishment_receipt_units > 0,
-                                                           "forecast_week_start"]).max().strftime("%Y-%m-%d"), "date"),
+        ("Estimated replenishment in the 13-week projection (unconfirmed, not open orders)",
+         plan.estimated_replenishment_receipt_units.sum(), "units"),
+        ("Last projected replenishment arrival (projected date, not a supplier date)",
+         last_projected_arrival(plan).strftime("%Y-%m-%d"), "date"),
+        ("Replenishment confirmation status", plan.replenishment_confirmation_status.iloc[0], "status"),
         ("Replenishment proxy series WAPE, worst backtest year", backtest.series_wape_pct.max(), "%"),
         ("Replenishment proxy portfolio error, worst backtest year", backtest.portfolio_error_pct.abs().max(), "%"),
-        ("v1 published: ESCALATE", count("v1_published_action", "ESCALATE"), "series"),
-        ("v1 published: PROTECT", count("v1_published_action", "PROTECT"), "series"),
-        ("Step 5 corrected: ESCALATE", count("step5_action", "ESCALATE"), "series"),
-        ("Step 5 corrected: PROTECT", count("step5_action", "PROTECT"), "series"),
-        ("Step 5 corrected: PROTECT on low coverage", count("step5_risk_type", "LOW_COVERAGE_RISK"), "series"),
-        ("Step 5 corrected: PROTECT on the severe-weather test", count("step5_risk_type", "SEVERE_SCENARIO_RISK"), "series"),
-        ("Step 5 corrected: HOLD", count("step5_action", "HOLD"), "series"),
+        ("Replenishment proxy series-week WAPE, best backtest year", backtest.series_week_wape_pct.min(), "%"),
+        ("Replenishment proxy series-week WAPE, worst backtest year", backtest.series_week_wape_pct.max(), "%"),
+        ("v1 published (zero replenishment): ESCALATE", count("v1_published_action", "ESCALATE"), "series"),
+        ("v1 published (zero replenishment): PROTECT", count("v1_published_action", "PROTECT"), "series"),
+        ("v1 published (zero replenishment): escalated series",
+         ", ".join(f"{r.sku_id} {r.channel_id}" for r in was_p1.itertuples()), "series"),
+        ("Step 5 if the estimate arrives as modelled: ESCALATE", count("step5_action", "ESCALATE"), "series"),
+        ("Step 5 if the estimate arrives as modelled: PROTECT", count("step5_action", "PROTECT"), "series"),
+        ("Step 5 if the estimate arrives as modelled: PROTECT on low coverage",
+         count("step5_risk_type", "LOW_COVERAGE_RISK"), "series"),
+        ("Step 5 if the estimate arrives as modelled: PROTECT on the severe-weather test",
+         count("step5_risk_type", "SEVERE_SCENARIO_RISK"), "series"),
+        ("Step 5 if the estimate arrives as modelled: HOLD", count("step5_action", "HOLD"), "series"),
         ("Step 8 queue: ESCALATE", count("step8_call", "ESCALATE"), "series"),
         ("Step 8 queue: WATCH", count("step8_call", "WATCH"), "series"),
         ("Step 8 queue: PROTECT", count("step8_call", "PROTECT"), "series"),
@@ -312,11 +372,21 @@ def summary_metrics(backtest: pd.DataFrame, rec: pd.DataFrame, plan: pd.DataFram
         ("Combined queue: PROTECT", count("combined_call", "PROTECT"), "series"),
         ("Combined queue: NO ACTION", count("combined_call", "NO ACTION"), "series"),
         ("Replenishment stress applied (worst backtest series WAPE)", rec.replenishment_stress_pct.iloc[0], "%"),
+        ("Share of the estimate arriving under the uniform stress", stress_arrival, "%"),
         ("Series whose Step 5 tier changes under a stress", int(changed.sum()), "of 9"),
         ("Series whose tier changes under a stress (list)",
          ", ".join(f"{r.sku_id} {r.channel_id}" for r in rec[changed].itertuples()), "series"),
-        ("Series escalated (P1) under any stress", escalated_under_stress, "of 9"),
-        ("Most replenishment any v1 escalation needs to clear", was_p1.share_of_proxy_needed_to_avoid_escalation_pct.max(), "% of proxy"),
+        ("Series escalated (P1) under the tested stresses", escalated_under_stress, "of 9"),
+        ("Most replenishment any v1 escalation needs to clear",
+         was_p1.share_of_estimate_needed_to_avoid_escalation_pct.max(), "% of estimate"),
+        ("Series needing the most of its estimate", f"{hardest.sku_id} {hardest.channel_id}", "series"),
+        ("Backtest series-years arriving below the uniform stress",
+         f"{len(worse_than_stress)} of {len(series_backtest)}", "series-years"),
+        ("Lowest backtest arrival", lowest.actual_pct_of_estimate, "% of estimate"),
+        ("Lowest backtest arrival (series, plan year)",
+         f"{lowest.sku_id} {lowest.channel_id}, {lowest.target_plan_year}", "series"),
+        ("Backtest series-years below a v1 escalation's needed share",
+         f"{int(was_p1.backtest_years_below_needed_share.sum())} of {len(former)}", "series-years"),
     ]
     out = pd.DataFrame(rows, columns=["metric", "value", "unit"])
     out["value"] = [round(v, 3) if isinstance(v, (float, np.floating)) else v for v in out.value]
@@ -327,17 +397,21 @@ def summary_metrics(backtest: pd.DataFrame, rec: pd.DataFrame, plan: pd.DataFram
 def main() -> None:
     plan = pd.read_csv(STEP5_PLAN_FILE, parse_dates=["forecast_week_start"])
     v1 = pd.read_csv(STEP5_V1_FILE, parse_dates=["forecast_week_start"])
-    if plan.supply_view.iloc[0] != "SEASONAL_DROPS_PLUS_IN_TRANSIT_REPLENISHMENT":
-        raise ValueError("Step 5 output is not the corrected supply view; rerun Step 5 with defaults.")
+    if plan.supply_view.iloc[0] != ESTIMATE_SUPPLY_VIEW:
+        raise ValueError("Step 5 output does not include the replenishment estimate; rerun Step 5 with defaults.")
+    if plan.replenishment_confirmation_status.iloc[0] != "UNCONFIRMED_ESTIMATE":
+        raise ValueError("Step 5 output does not mark the replenishment estimate as unconfirmed.")
 
     backtest = replenishment_proxy_backtest()
+    series_backtest = replenishment_series_backtest()
     validate_replica(plan, v1)
     stress = round(float(backtest.series_wape_pct.max()) / 100, 3)
-    rec = reconcile(plan, v1, stress)
-    summary = summary_metrics(backtest, rec, plan)
+    rec = reconcile(plan, v1, stress, series_backtest)
+    summary = summary_metrics(backtest, series_backtest, rec, plan)
 
     outputs = {
         "DemandIQ_Step8B_Replenishment_Proxy_Backtest.csv": backtest,
+        "DemandIQ_Step8B_Replenishment_Proxy_Series_Backtest.csv": series_backtest,
         "DemandIQ_Step8B_Step5_Reconciliation.csv": rec,
         "DemandIQ_Step8B_Summary_Metrics.csv": summary,
     }

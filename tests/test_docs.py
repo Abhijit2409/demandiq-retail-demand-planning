@@ -45,7 +45,9 @@ def expected_tokens() -> dict[str, str]:
     s8b = read(DIR + "DemandIQ_Step8B_Summary_Metrics.csv").set_index("metric").value
     num = lambda k: float(m[k])  # noqa: E731
     day = lambda d: pd.Timestamp(d).strftime("%b %-d")  # noqa: E731
-    protect, hold = int(float(s8b["Step 5 corrected: PROTECT"])), int(float(s8b["Step 5 corrected: HOLD"]))
+    cond = "Step 5 if the estimate arrives as modelled: "
+    protect, hold = int(float(s8b[cond + "PROTECT"])), int(float(s8b[cond + "HOLD"]))
+    zero = int(float(s8b["v1 published (zero replenishment): ESCALATE"]))
     return {
         "fill PY2022": f"{num('Dec-Feb fill, PY2022'):.1f}%",
         "fill PY2026": f"{num('Dec-Feb fill, PY2026'):.1f}%",
@@ -62,8 +64,10 @@ def expected_tokens() -> dict[str, str]:
         "order deadline 2": day(feas.latest_order_overseas_lane.max()),
         "chase deadline 1": day(feas.latest_order_chase_lane.min()),
         "chase deadline 2": day(feas.latest_order_chase_lane.max()),
-        "in-transit units": f"{float(s8b['In-transit replenishment counted in the 13-week supply']):,.0f}",
-        "corrected calls": f"0 escalate, {protect} protect, {hold} hold",
+        "estimated replenishment units":
+            f"{float(s8b['Estimated replenishment in the 13-week projection (unconfirmed, not open orders)']):,.0f}",
+        "calls if the estimate arrives": f"0 escalate, {protect} protect, {hold} hold",
+        "zero-replenishment escalations": f"{zero} escalate",
         "framing": "retrospective",
     }
 

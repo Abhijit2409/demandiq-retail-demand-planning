@@ -2,7 +2,7 @@
 
 Confirms the Step 6A layer is internally consistent and follows the Step 5
 governance rules. The checks are rules, not expected counts, so they hold for
-any supply view (the corrected plan and the v1 plan as first published).
+any supply view (the plan with estimated replenishment and the zero-replenishment v1 plan).
 Read-only: never mutates or rebuilds any upstream data.
 """
 from __future__ import annotations
@@ -88,7 +88,14 @@ def run_validation(exec_df, series_df, weekly_df) -> dict:
     )
     checks["Exec receipts == weekly sum"] = _close(
         e["committed_receipts_13w_units"], weekly_df["committed_receipt_units"].sum(), 1.0
+    ) and (
+        "planned_receipts_13w_units" not in e.index
+        or _close(e["planned_receipts_13w_units"], weekly_df["planned_receipt_units"].sum(), 1.0)
     )
+    if float(e.get("estimated_replenishment_13w_units", 0.0) or 0.0) > 0:
+        checks["Estimated replenishment marked unconfirmed"] = (
+            e.get("replenishment_confirmation_status") == "UNCONFIRMED_ESTIMATE"
+        )
     checks["Exec weekly-risk count == series count"] = (
         int(e["p1_weekly_service_risk_series"]) == len(weekly_risk)
     )

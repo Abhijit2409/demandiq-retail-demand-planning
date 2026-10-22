@@ -50,10 +50,10 @@ CI runs the same check on every push (`.github/workflows/ci.yml`).
 | 16 | Forward weather framework (4C.4) | `04_scripts/step4c/step4c_4_forward_weather_framework.py` | overlay | `05_outputs/weather_forward/` | exact |
 | 17 | Final 13-week forecast (4D) | `04_scripts/step4c/step4d_final_forecast.py` | input, forward weather | `05_outputs/forecasts/` | refit |
 | 18 | IBP decision engine (5) | `04_scripts/step5/step5_ibp_decision_engine.py` | 4D forecast, 3C inventory, 3D economics | `05_outputs/ibp_decisions/` | exact |
-| 19 | KPI and decision layer (6A) | `04_scripts/step6/step6a_decision_layer.py` | 4D forecast, Step 5 plan | `05_outputs/decision_layer/` | exact |
+| 19 | KPI and decision layer (6A) | `04_scripts/step6/step6a_decision_layer.py` | 4D forecast, Step 5 plan, v1 plan (zero-replenishment comparison) | `05_outputs/decision_layer/` | exact |
 | 20 | Launch planning (7B–7F) | `04_scripts/step7b/` … `step7f/` | 3D economics, earlier 7x outputs | `05_outputs/launch_step7*/` | exact |
 | 21 | Peak-season diagnosis (8) | `04_scripts/step8/step8_peak_diagnosis.py` | 3D economics, 4B baseline, v1 plan, 4B champions, 7E, 7F | `05_outputs/peak_season_diagnosis/DemandIQ_Step8_*`, `08_assets/charts/` | exact |
-| 22 | Step 5 reconciliation (8B) | `04_scripts/step8/step8b_step5_reconciliation.py` | 3C inventory, Step 5 plan, v1 plan, Step 8 queue | `DemandIQ_Step8B_*` | exact |
+| 22 | Step 5 reconciliation and replenishment sensitivity (8B) | `04_scripts/step8/step8b_step5_reconciliation.py` | 3C inventory, Step 5 plan, v1 plan, Step 8 queue | `DemandIQ_Step8B_*` | exact |
 | 23 | Two-page brief | `04_scripts/step8/step8c_build_brief.py` | Step 8 and 8B outputs, chart | `06_docs/DemandIQ_Peak_Season_Brief.pdf` | exact (content) |
 
 **exact**: rebuilt by `run_pipeline.py` and checked byte for byte.

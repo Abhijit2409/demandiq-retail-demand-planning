@@ -65,29 +65,41 @@ def status_banner(exec_row):
     base_fill = fmt.pct(exec_row["base_13w_fill_rate"])
     target = fmt.pct(exec_row["service_target_fill_rate"])
     ss_gap = fmt.units_k(exec_row["base_safety_stock_protection_gap_units"])
-    in_transit = exec_row.get("in_transit_replenishment_13w_units", 0.0)
+    estimate = float(exec_row.get("estimated_replenishment_13w_units", 0.0) or 0.0)
+    conditional = estimate > 0
 
     supply = "Seasonal drops"
-    if in_transit and float(in_transit) > 0:
-        supply = f"Seasonal drops + {fmt.units_k(in_transit)} in-transit replenishment"
+    if conditional:
+        supply = f"Seasonal drops + {fmt.units_k(estimate)} estimated replenishment (unconfirmed)"
+    response = f"{escalate} ESCALATE · {protect} PROTECT · {hold} HOLD · 0 auto chase"
     cells = [
         ("Portfolio health", f"Base fill {base_fill} vs {target} target"),
         ("Weekly execution risk", f"{weekly_risk} series miss weekly service 2+ times"),
         ("Supply counted", supply),
-        ("Planner response", f"{escalate} ESCALATE · {protect} PROTECT · {hold} HOLD · 0 auto chase"),
+        ("If the estimate arrives as modelled" if conditional else "Planner response", response),
     ]
+    if conditional:
+        zero = (f"{_count(exec_row, 'zero_replenishment_escalate_series', 0)} ESCALATE · "
+                f"{_count(exec_row, 'zero_replenishment_protect_series', 0)} PROTECT · "
+                f"{_count(exec_row, 'zero_replenishment_hold_series', 0)} HOLD (published list)")
+        cells.append(("With zero replenishment", zero))
     if escalate:
         flag = "▲ Action Required"
         headline = (f"Aggregate service is healthy, but {escalate} series "
                     f"{'has' if escalate == 1 else 'have'} repeated weekly service misses")
     else:
-        flag = "● No Escalation"
+        flag = "● No Escalation" + (" if the estimate arrives" if conditional else "")
         low_cover = int(exec_row["p2_low_coverage_risk_series"])
         severe = _count(exec_row, "p2_severe_scenario_risk_series", 0)
-        headline = (f"Service holds in every week; {low_cover} series finish below the "
+        headline = (("If the estimated replenishment arrives as modelled, service holds"
+                     if conditional else "Service holds")
+                    + f" in every week; {low_cover} series finish below the "
                     f"2.5-week safety-stock policy (gap {ss_gap})"
                     + (f" and {severe} more under severe weather" if severe else "")
                     + f", so {protect} are protected")
+    if conditional:
+        headline += (". A planner must confirm open-order quantities and receipt dates "
+                     "before this replaces the published escalation list")
     grid = "".join(
         f'<div class="diq-banner-cell"><div class="k">{_esc(k)}</div>'
         f'<div class="v">{_esc(v)}</div></div>' for k, v in cells

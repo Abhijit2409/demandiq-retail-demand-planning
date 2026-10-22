@@ -61,31 +61,34 @@ def fill_rate_heatmap(weekly: pd.DataFrame, series_df: pd.DataFrame, title: str 
 
 
 def demand_vs_receipts(weekly: pd.DataFrame, highlight_week=None):
-    """Portfolio Base demand (line) vs committed receipts (bars).
+    """Portfolio Base demand (line) vs planned receipts (bars).
+
+    Planned receipts = committed seasonal drops + estimated replenishment
+    (unconfirmed; last year's replenishment shifted 52 weeks).
 
     Receipts arrive in lumpy batches; `highlight_week` (the shared worst-service
     week, from frozen data) is annotated once. Diagnostic alignment, not a
     proven-cause claim.
     """
-    split = "committed_replenishment_receipt_units" in weekly.columns
+    split = "estimated_replenishment_receipt_units" in weekly.columns
     cols = ["base_forecast_units", "committed_receipt_units"]
     if split:
-        cols += ["committed_seasonal_receipt_units", "committed_replenishment_receipt_units"]
+        cols += ["estimated_replenishment_receipt_units"]
     d = (weekly.groupby("forecast_week_start", as_index=False)[cols].sum()
          .sort_values("forecast_week_start").reset_index(drop=True))
     xlab = [pd.Timestamp(x).strftime("%b %d") for x in d["forecast_week_start"]]
 
     fig = go.Figure()
-    if split and d["committed_replenishment_receipt_units"].sum() > 0:
+    if split and d["estimated_replenishment_receipt_units"].sum() > 0:
         fig.add_trace(go.Bar(
-            x=xlab, y=d["committed_seasonal_receipt_units"], name="Seasonal drops",
+            x=xlab, y=d["committed_receipt_units"], name="Seasonal drops",
             marker_color=theme.P2, opacity=0.85,
             hovertemplate="%{x}<br>Seasonal drops: %{y:,.0f} units<extra></extra>",
         ))
         fig.add_trace(go.Bar(
-            x=xlab, y=d["committed_replenishment_receipt_units"],
-            name="In-transit replenishment", marker_color=theme.NEUTRAL, opacity=0.9,
-            hovertemplate="%{x}<br>In-transit replenishment: %{y:,.0f} units<extra></extra>",
+            x=xlab, y=d["estimated_replenishment_receipt_units"],
+            name="Estimated replenishment (unconfirmed)", marker_color=theme.NEUTRAL, opacity=0.9,
+            hovertemplate="%{x}<br>Estimated replenishment (unconfirmed): %{y:,.0f} units<extra></extra>",
         ))
     else:
         fig.add_trace(go.Bar(
@@ -113,7 +116,7 @@ def demand_vs_receipts(weekly: pd.DataFrame, highlight_week=None):
                 font=dict(color=theme.P1, size=13),
             )
 
-    fig.update_layout(title="Demand vs Committed Receipts",
+    fig.update_layout(title="Demand vs Planned Receipts" if split else "Demand vs Committed Receipts",
                       barmode="stack" if split else "overlay")
     fig.update_yaxes(title_text="units / week")
     return theme.apply_theme(fig, height=390)
@@ -155,19 +158,24 @@ def series_trajectory(weekly_one: pd.DataFrame, label: str, show_title: bool = T
     d = weekly_one.sort_values("forecast_week_start")
     xlab = [pd.Timestamp(x).strftime("%b %d") for x in d["forecast_week_start"]]
     bar_colors = [theme.P1 if f < 0.92 else theme.P2 for f in d["base_fill_rate"]]
+    estimated = ("estimated_replenishment_receipt_units" in d.columns
+                 and d["estimated_replenishment_receipt_units"].sum() > 0)
+    receipts_col = "planned_receipt_units" if estimated else "committed_receipt_units"
+    receipts_name = ("Planned receipts (incl. estimated replenishment)" if estimated
+                     else "Committed receipts")
 
     fig = go.Figure()
     fig.add_trace(go.Bar(
         x=xlab, y=d["base_fill_rate"], name="Base weekly fill",
         marker_color=bar_colors, yaxis="y",
         customdata=d[["base_forecast_units", "base_shipped_units",
-                      "committed_receipt_units"]].values,
+                      receipts_col]].values,
         hovertemplate=("%{x}<br>Base fill: %{y:.1%}"
                        "<br>Demand: %{customdata[0]:,.0f} · Shipped: %{customdata[1]:,.0f}"
                        "<br>Receipts: %{customdata[2]:,.0f}<extra></extra>"),
     ))
     fig.add_trace(go.Scatter(
-        x=xlab, y=d["committed_receipt_units"], name="Committed receipts",
+        x=xlab, y=d[receipts_col], name=receipts_name,
         mode="lines+markers", line=dict(color=theme.SUBTLE, width=2, dash="dot"),
         yaxis="y2", hovertemplate="%{x}<br>Receipts: %{y:,.0f} units<extra></extra>",
     ))

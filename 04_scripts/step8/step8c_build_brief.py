@@ -143,13 +143,21 @@ def facts() -> dict[str, Fact]:
             f"{m('Top 20 cells by stockout days (observable selection), share of true lost revenue'):.1f}%", H),
         "top20_truth": Fact(f"{m('Top 20 cells by true lost revenue, share of PY2026 lost revenue'):.1f}%", H),
         "top20": Fact("20", H),
-        "v1_escalations": Fact(str(b("v1 published: ESCALATE")), "Step 8B summary"),
-        "step5_escalate": Fact(str(b("Step 5 corrected: ESCALATE")), "Step 8B summary"),
-        "step5_protect": Fact(str(b("Step 5 corrected: PROTECT")), "Step 8B summary"),
-        "step5_hold": Fact(str(b("Step 5 corrected: HOLD")), "Step 8B summary"),
-        "in_transit": Fact(_n(float(s8b["In-transit replenishment counted in the 13-week supply"])),
-                           "Step 8B summary"),
-        "in_transit_by": Fact(_day(s8b["Last in-transit arrival"]), "Step 8B summary"),
+        "v1_escalations": Fact(str(b("v1 published (zero replenishment): ESCALATE")), "Step 8B summary"),
+        "step5_escalate": Fact(str(b("Step 5 if the estimate arrives as modelled: ESCALATE")), "Step 8B summary"),
+        "step5_protect": Fact(str(b("Step 5 if the estimate arrives as modelled: PROTECT")), "Step 8B summary"),
+        "step5_hold": Fact(str(b("Step 5 if the estimate arrives as modelled: HOLD")), "Step 8B summary"),
+        "est_replen": Fact(_n(float(s8b["Estimated replenishment in the 13-week projection "
+                                        "(unconfirmed, not open orders)"])), "Step 8B summary"),
+        "est_replen_by": Fact(_day(s8b["Last projected replenishment arrival (projected date, not a supplier date)"]),
+                              "Step 8B summary"),
+        "replen_week_error": Fact(
+            f"{float(s8b['Replenishment proxy series-week WAPE, best backtest year']):.0f}–"
+            f"{float(s8b['Replenishment proxy series-week WAPE, worst backtest year']):.0f}%", "Step 8B summary"),
+        "replen_stress": Fact(f"{float(s8b['Replenishment stress applied (worst backtest series WAPE)']):.1f}%",
+                              "Step 8B summary"),
+        "replen_needed": Fact(f"{float(s8b['Most replenishment any v1 escalation needs to clear']):.0f}%",
+                              "Step 8B summary"),
         "watch": Fact(str(int(calls.get("WATCH", 0))), "Step 8 corrected queue"),
         "agree": Fact(f"{b('Series where Step 5 and Step 8 agree')} of {len(rec)}", "Step 8B summary"),
         "launch_reserve": Fact(_n(m("Launch reserve units")), H),
@@ -240,7 +248,7 @@ def render(f: dict[str, Fact]) -> str:
 <li><b>The buy plans the business down.</b> Each buy starts from last year's sales, {v['buy_basis']} below last year's reconstructed demand. In Dec–Feb, reconstructed demand runs {v['uplift']} above sales.<span class=tag>observable</span></li>
 <li><b>Most of the loss is timing.</b> {v['timing']} of lost units had stock arriving within the plan year, but after the stockouts.<span class=tag>truth</span></li>
 <li><b>Chase is aimed at the wrong signal.</b> It fires in mid-September in {v['chase_low']}–{v['chase_high']} of cells whatever their eventual loss, and {v['unused_chase']} units of chase capacity went unused.<span class=tag>observable</span></li>
-<li><b>The published {p['window']} plan looked at the wrong season.</b> Its summer window held {v['window_share']} of lost demand, and its {v['v1_escalations']} escalations came from leaving in-transit replenishment out of supply. Weather changes {v['weather_changes']} of the {v['series']} planner actions; counting replenishment changes {v['supply_changes']}.<span class=tag>observable</span></li>
+<li><b>The published {p['window']} plan looked at the wrong season.</b> Its summer window held {v['window_share']} of lost demand, and its {v['v1_escalations']} escalations assume zero replenishment. Weather changes {v['weather_changes']} of the {v['series']} planner actions; adding estimated replenishment changes {v['supply_changes']}.<span class=tag>observable</span></li>
 </ul>
 <p class="note">Evidence labels: <b>observable</b> = sales, in-stock days, receipts, inventory and reconstructed demand, which a planner can see. <b>Truth</b> = hidden simulation fields, used only to size the problem and to validate.</p>
 </div>
@@ -253,7 +261,7 @@ def render(f: dict[str, Fact]) -> str:
 <tr><td><b>Plan the peak on reconstructed demand; move stock before buying</b></td><td>Indicative +{v['change']}: {v['moved']} moved forward from spring replenishment, {v['new']} new, {v['accepted_gap']} accepted gap (excess guardrail)</td><td>Commit suppliers by {v['order_first']} ({v['order_first_series']} series) or {v['order_last']} ({v['order_last_series']}) · planner, S&amp;OP, supply</td></tr>
 <tr><td><b>Size chase from the peak gap, not early shipments</b></td><td>Fallback floor of about {v['chase_floor']} units within last season's unused chase capacity</td><td>Chase order by {v['chase_first']} or {v['chase_last']} · planner with supply planning</td></tr>
 <tr><td><b>Rank exceptions by stockout days</b>, by SKU × region × channel</td><td>Top {v['top20']} of {v['cells']} cells by stockout days capture {v['top20_observable']} of true lost revenue (true top {v['top20']}: {v['top20_truth']})</td><td>Each monthly S&amp;OP · Demand Planner</td></tr>
-<tr><td><b>Escalate only shortfalls that survive forecast error</b></td><td>{v['in_transit']} in-transit units counted (landed by {v['in_transit_by']}): {v['step5_escalate']} escalate, {v['step5_protect']} protect, {v['step5_hold']} hold; error band adds {v['watch']} watch ({v['agree']} agree). Published list: {v['v1_escalations']} escalations.</td><td>Weekly S&amp;OE · Demand Planner</td></tr>
+<tr><td><b>Escalate only shortfalls that survive forecast error</b></td><td>If {v['est_replen']} estimated replenishment units arrive as modelled (by {v['est_replen_by']}; unconfirmed): {v['step5_escalate']} escalate, {v['step5_protect']} protect, {v['step5_hold']} hold; error band adds {v['watch']} watch. Zero replenishment (published): {v['v1_escalations']} escalate.</td><td>Weekly S&amp;OE · planner confirms open orders and receipt dates before replacing the published list</td></tr>
 <tr><td><b>Release launch reserve on a <span style="white-space:nowrap">{v['launch_rule_pp']}</span> channel-mix rule</b></td><td>{v['launch_reserve']}-unit reserve on a {v['launch_buy']}-unit buy; ECOM lost {v['launch_ecom_lost']} units while it sat idle</td><td>Launch checkpoints {p['checkpoints']}</td></tr>
 </table>
 
@@ -276,6 +284,7 @@ def render(f: dict[str, Fact]) -> str:
 <ul>
 <li><b>Direction: high.</b> Scored against simulation truth, the priority ranking matches {v['rank_match']} and {v['calls_survive']} survives recomputation with true demand. The observable top {v['top20']} cells capture {v['top20_observable']} of true lost revenue, against {v['top20_truth']} for the true top {v['top20']}.<span class=tag>truth</span></li>
 <li><b>Size: conservative.</b> Reconstruction finds {v['gap_recovered']} of the true Dec–Feb gap. The planner view also asks for more new units than truth suggests ({v['new_share_planner']} vs {v['new_share_truth']}).<span class=tag>truth</span></li>
+<li><b>Weekly escalations: conditional.</b> The replenishment estimate missed by {v['replen_week_error']} series-week in backtests. One published escalation needs {v['replen_needed']} of its estimate to clear; a {v['replen_stress']} cut is one scenario, not a bound.</li>
 <li><b>Limits.</b> Simulated data with the failure modes designed in; the test is that the diagnosis finds them. Lost revenue assumes no substitution; supplier capacity, MOQs and order-change windows are not modelled.</li>
 </ul>
 <div class="foot">Every number is generated from the CSVs: <b>python 04_scripts/run_pipeline.py --check</b> · github.com/Abhijit2409/demandiq-retail-demand-planning · simulated data</div>

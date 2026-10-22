@@ -1,4 +1,4 @@
-"""The Streamlit app renders every page on the corrected plan; validation is rule-based."""
+"""The Streamlit app renders every page; validation is rule-based; the banner is conditional."""
 
 from __future__ import annotations
 
@@ -54,4 +54,7 @@ cards.status_banner(e.iloc[0])
 """
     app = AppTest.from_string(script, default_timeout=120).run()
     text = " ".join(m.value for m in app.markdown)
-    assert "No Escalation" in text and "0 ESCALATE · 7 PROTECT · 2 HOLD" in text
+    assert "No Escalation if the estimate arrives" in text and "0 ESCALATE · 7 PROTECT · 2 HOLD" in text
+    assert "estimated replenishment (unconfirmed)" in text
+    assert "With zero replenishment" in text and "3 ESCALATE · 6 PROTECT · 0 HOLD (published list)" in text
+    assert "confirm open-order quantities and receipt dates" in text
