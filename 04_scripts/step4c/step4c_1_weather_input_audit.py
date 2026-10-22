@@ -32,7 +32,7 @@ from pathlib import Path
 # 1. PROJECT ROOT
 # ------------------------------------------------------------
 
-PROJECT_DIR = Path(r"D:\Downloads\DemandIQ")
+PROJECT_DIR = Path(__file__).resolve().parents[2]  # repository root
 
 
 # ------------------------------------------------------------
@@ -52,6 +52,8 @@ WEATHER_FILE = (
 
 DEMAND_FILE = (
     PROJECT_DIR
+    / "03_model_evidence"
+    / "step4a_reconstruction"
     / "DemandIQ_Step4A_Demand_Reconstruction.csv"
 )
 

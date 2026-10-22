@@ -1,0 +1,14 @@
+# DemandIQ runtime dependencies, Python 3.13.
+# Pinned so `python 04_scripts/run_pipeline.py --check` rebuilds every
+# committed output byte for byte. Pillow writes the chart PNGs, so it is
+# pinned too. See 06_docs/DemandIQ_Reproducibility.md.
+numpy==2.5.3
+pandas==3.0.5
+scipy==1.18.1
+statsmodels==0.15.0
+patsy==1.0.3
+matplotlib==3.11.2
+pillow==12.3.0
+openpyxl==3.1.5
+plotly==7.1.0
+streamlit==1.66.0

@@ -31,7 +31,7 @@ from pathlib import Path
 # 1. PROJECT ROOT
 # ------------------------------------------------------------
 
-PROJECT_DIR = Path(r"D:\Downloads\DemandIQ")
+PROJECT_DIR = Path(__file__).resolve().parents[2]  # repository root
 
 
 # ------------------------------------------------------------

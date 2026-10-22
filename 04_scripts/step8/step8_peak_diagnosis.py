@@ -39,10 +39,18 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
+from matplotlib import font_manager  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT_DIR = ROOT / "05_outputs" / "peak_season_diagnosis"
 CHART_DIR = ROOT / "08_assets" / "charts"
+
+# Charts use the bundled Inter font (SIL OFL) and explicit text settings, so a
+# stock matplotlib install renders byte-identical PNGs on any machine.
+for _font in sorted((ROOT / "08_assets" / "fonts").glob("Inter-*.otf")):
+    font_manager.fontManager.addfont(str(_font))
+plt.rcParams["font.family"] = ["Inter", "sans-serif", "DejaVu Sans"]
+plt.rcParams["text.hinting"] = "no_hinting"
 
 HISTORY_FILE = ROOT / "02_data/processed/DemandIQ_Step3D_v4_Retail_Economics.csv"
 RECON_FILE = ROOT / "03_model_evidence/step4b_forecasting/baseline/DemandIQ_Step4B_Baseline_Predictions.csv"

@@ -154,14 +154,19 @@ The recommendation uses observable data only; truth is used here to score it.
 ## Run it
 
 ```bash
-python -m pip install pandas numpy matplotlib
-python 04_scripts/step8/step8_peak_diagnosis.py   # rebuilds every Step 8 number from committed files, about 3 s
-
-python -m pip install -r 07_streamlit_app/requirements.txt
-python -m streamlit run 07_streamlit_app/app.py    # original planning app (summer S&OE view)
+python -m pip install -r requirements-dev.txt     # pinned, Python 3.13
+python -m playwright install chromium             # for the PDF brief
+python 04_scripts/run_pipeline.py --check         # rebuilds weather, Steps 4B–8 and the brief, and fails if any committed output changes
+python -m pytest -q                               # supply view, Step 8 numbers, brief, app, source data
+python -m streamlit run 07_streamlit_app/app.py   # planning app on the corrected 13-week plan
 ```
 
-Steps 3–7 were run from a local working folder, and their committed outputs are the evidence. Step 8 runs straight from the repository. A one-command rebuild of Steps 3–7 is on the roadmap.
+Every script uses paths relative to the repository. Two pieces were never committed:
+
+- the Step 3 data generator, whose CSVs are the frozen source data;
+- the Step 4A reconstruction code.
+
+Step 4B.0 recovers the reconstructed-demand series exactly from committed backtest evidence, so Steps 4B–8 rebuild from the repository. ETS, SARIMA and Step 4D refits can be re-run, but they drift slightly across library versions; `run_pipeline.py --refit` reports by how much. Run order, inputs and the recovery path are in [Reproducibility](./06_docs/DemandIQ_Reproducibility.md).
 
 ## Repository map
 

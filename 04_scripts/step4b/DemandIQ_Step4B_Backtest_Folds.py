@@ -18,10 +18,12 @@ from pathlib import Path
 # 1. FILE PATHS
 # ------------------------------------------------------------
 
-PROJECT_DIR = Path(r"D:\Downloads\DemandIQ")
+PROJECT_DIR = Path(__file__).resolve().parents[2]  # repository root
 
 INPUT_FILE = (
     PROJECT_DIR
+    / "03_model_evidence"
+    / "step4b_forecasting"
     / "DemandIQ_Step4B_Forecasting_Input.csv"
 )
 
@@ -518,6 +520,9 @@ print(
 )
 FOLD_OUTPUT_FILE = (
     PROJECT_DIR
+    / "03_model_evidence"
+    / "step4b_forecasting"
+    / "backtest"
     / "DemandIQ_Step4B_Backtest_Folds.csv"
 )
 
