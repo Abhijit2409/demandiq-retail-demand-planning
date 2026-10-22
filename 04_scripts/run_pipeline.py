@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import argparse
 import io
+import os
 import shutil
 import subprocess
 import sys
@@ -182,8 +183,9 @@ def run(step: Step) -> float:
     log = LOG_DIR / f"{step.key}.log"
     start = time.time()
     with log.open("w", encoding="utf-8") as handle:
+        env = {**os.environ, "PYTHONHASHSEED": "0", "MPLBACKEND": "Agg"}
         result = subprocess.run([sys.executable, str(ROOT / step.script), *step.args],
-                                cwd=ROOT, stdout=handle, stderr=subprocess.STDOUT)
+                                cwd=ROOT, stdout=handle, stderr=subprocess.STDOUT, env=env)
     elapsed = time.time() - start
     if result.returncode != 0:
         tail = log.read_text(encoding="utf-8", errors="replace").splitlines()[-25:]
