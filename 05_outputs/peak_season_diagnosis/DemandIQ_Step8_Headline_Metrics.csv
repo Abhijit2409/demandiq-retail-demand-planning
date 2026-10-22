@@ -20,7 +20,7 @@ Timing share of PY2026 lost units,58.777,%,SIMULATION_TRUTH,DIAGNOSIS
 "Median first peak stockout, plan week",27.0,week,PLANNER_VIEW,DIAGNOSIS
 "Unused chase capacity, PY2026",5402.863,units,PLANNER_VIEW,DIAGNOSIS
 "Peak lost units, PY2026",13039.178,units,SIMULATION_TRUTH,DIAGNOSIS
-"Top 20 of 81 cells, share of PY2026 lost revenue",60.199,%,SIMULATION_TRUTH,DIAGNOSIS
+"Top 20 cells by true lost revenue, share of PY2026 lost revenue",60.199,%,SIMULATION_TRUTH,DIAGNOSIS
 Rank correlation: lost revenue vs stockout days,0.899,rho,PLANNER_VIEW,DIAGNOSIS
 Top-20 cells by lost revenue also top 20 by stockout days,15.0,of 20,PLANNER_VIEW,DIAGNOSIS
 Series changed: stockout correction (naive on sales vs reconstructed),0.0,of 9,PLANNER_VIEW,DIAGNOSIS
@@ -46,9 +46,10 @@ Regular October-drop order date for the next peak,2026-04-27,date,PLANNER_VIEW,R
 Plan as-of date,2026-06-29,date,PLANNER_VIEW,RECOMMENDATION
 "Latest 22-week order date for the next peak, earliest series",2026-06-29,date,PLANNER_VIEW,RECOMMENDATION
 Series needing new units that fit last season's chase headroom,3 of 8,series,PLANNER_VIEW,RECOMMENDATION
-Chase-only floor: units that can still land if no PO change or 22-week order is possible,4355.0,units,PLANNER_VIEW,RECOMMENDATION
+Chase-only floor at the plan date (orders due by 2026-09-21 or 2026-10-05),4355.0,units,PLANNER_VIEW,RECOMMENDATION
 Planner Dec-Feb gap as share of true gap,74.971,%,SIMULATION_TRUTH,VALIDATION
 Calls unchanged when recomputed with true demand,9.0,of 9,SIMULATION_TRUTH,VALIDATION
+"Top 20 cells by stockout days (observable selection), share of true lost revenue",53.374,%,PLANNER_VIEW selection; SIMULATION_TRUTH value,VALIDATION
 Top-3 priority series shared with the true ranking,3.0,of 3,SIMULATION_TRUTH,VALIDATION
 "New-unit share of the change, planner view",54.29,%,PLANNER_VIEW,VALIDATION
 "Quantity share of lost units, simulation truth",41.223,%,SIMULATION_TRUTH,VALIDATION

@@ -22,6 +22,10 @@ The peak-buy recommendation (Peak_Buy_Recommendation, Peak_Buy_by_Region,
 Peak_Move_Feasibility) uses PLANNER_VIEW data only. SIMULATION_TRUTH appears
 in the diagnosis, for sizing, and in Peak_Buy_Validation, never in a decision.
 
+The recommendation is retrospective: it is evaluated at the published plan's
+as-of date, 2026-06-29, and its order and chase deadlines (Jun 29 to Oct 5,
+2026) are what the planner should have decided then.
+
 Run from anywhere:
     python 04_scripts/step8/step8_peak_diagnosis.py
 """
@@ -290,12 +294,18 @@ def loss_concentration(history: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     cells["share_of_lost_revenue"] = cells.lost_revenue_cad / cells.lost_revenue_cad.sum()
     cells["cumulative_share"] = cells.share_of_lost_revenue.cumsum()
     cells["rank_by_stockout_days"] = cells.stockout_days.rank(ascending=False, method="min").astype(int)
-    cells["basis"] = f"lost revenue and fill: {TRUTH}; stockout days: {PLANNER}"
+    # The planner's selection: top 20 by stockout days, ties broken by sales
+    # (both observable). Its true lost revenue is a validation, not an input.
+    observable_order = cells.sort_values(["stockout_days", "sold_units"], ascending=False, kind="mergesort")
+    top20_stockout = set(observable_order.index[:20])
     top20_revenue = set(cells.index[:20])
-    top20_stockout = set(cells.sort_values("stockout_days", ascending=False).index[:20])
+    cells["in_observable_top20"] = cells.index.isin(list(top20_stockout))
+    cells["basis"] = f"lost revenue and fill: {TRUTH}; stockout days and sales: {PLANNER}"
     summary = {
         "cells": len(cells),
         "top20_share_of_lost_revenue": float(cells.share_of_lost_revenue.iloc[:20].sum()),
+        "observable_top20_share_of_true_lost_revenue": float(
+            cells.loc[cells.in_observable_top20, "share_of_lost_revenue"].sum()),
         "spearman_lost_revenue_vs_stockout_days": float(
             cells.lost_revenue_cad.rank().corr(cells.stockout_days.rank())
         ),
@@ -549,7 +559,7 @@ def peak_buy_recommendation(series: pd.DataFrame, history: pd.DataFrame) -> tupl
     rec = rec.join(totals.rename(columns={"allocated_change_units": "change_units"}))
     rec["call"] = _call(rec.moved_units, rec.new_units)
     rec["priority_rank"] = rec.estimated_lost_revenue_cad.rank(ascending=False, method="min").astype(int)
-    rec["status"] = "INDICATIVE: open supply checks in Peak_Move_Feasibility"
+    rec["status"] = "INDICATIVE, evaluated at the 2026-06-29 plan date; open supply checks in Peak_Move_Feasibility"
     rec["basis"] = PLANNER
     regions["basis"] = PLANNER
     return rec.reset_index().sort_values("priority_rank"), regions
@@ -584,18 +594,19 @@ def peak_move_feasibility(history: pd.DataFrame, rec: pd.DataFrame) -> pd.DataFr
     out["weeks_earlier_for_moved_units"] = (spring_half - first_stockout).dt.days / 7
     out["october_drop_order_date_next_peak"] = october_drop + pd.Timedelta(weeks=52 - OVERSEAS_LEAD_WEEKS)
     out["latest_order_overseas_lane"] = out.required_arrival_next_peak - pd.Timedelta(weeks=OVERSEAS_LEAD_WEEKS)
-    out["days_left_on_overseas_lane"] = (out.latest_order_overseas_lane - PLAN_AS_OF).dt.days
+    out["days_left_at_plan_date_overseas_lane"] = (out.latest_order_overseas_lane - PLAN_AS_OF).dt.days
     out["latest_order_chase_lane"] = out.required_arrival_next_peak - pd.Timedelta(weeks=CHASE_LEAD_WEEKS)
     out["chase_headroom_last_season_units"] = (
         commitment * CHASE_CAP_SHARE - latest.groupby(SERIES).chase_receipt_units.sum())
     out["moved_units_check"] = np.where(
-        out.moved_units > 0, "OPEN: pull spring orders forward; PO-change window not modelled", "Not needed")
+        out.moved_units > 0, "OPEN at plan date: pull spring orders forward; PO-change window not modelled",
+        "Not needed")
     out["new_units_check"] = np.select(
-        [out.new_units == 0, out.days_left_on_overseas_lane >= 0,
+        [out.new_units == 0, out.days_left_at_plan_date_overseas_lane >= 0,
          out.new_units <= out.chase_headroom_last_season_units],
-        ["Not needed", "OPEN: 22-week order still possible; supplier capacity not modelled",
-         "Chase lane, within last season's unused capacity"],
-        default="OPEN: exceeds chase capacity; needs supplier capacity")
+        ["Not needed", "OPEN at plan date: 22-week order possible; supplier capacity not modelled",
+         "At plan date: chase lane, within last season's unused capacity"],
+        default="OPEN at plan date: exceeds chase capacity; needs supplier capacity")
     out["new_units_fit_chase_headroom"] = out.new_units <= out.chase_headroom_last_season_units
     # Floor: if neither a PO change nor a new 22-week order is possible, only
     # chase can land before the stockouts, and chase units are new units.
@@ -797,11 +808,12 @@ def headline_metrics(trend, basis, split, quartiles, chase_years, chase_timing, 
         ("Plan as-of date", _date(PLAN_AS_OF), "date", PLANNER),
         ("Latest 22-week order date for the next peak, earliest series", _date(f.latest_order_overseas_lane.min()), "date", PLANNER),
         ("Series needing new units that fit last season's chase headroom", f"{int(buying.new_units_fit_chase_headroom.sum())} of {len(buying)}", "series", PLANNER),
-        ("Chase-only floor: units that can still land if no PO change or 22-week order is possible", f.chase_only_units.sum(), "units", PLANNER),
+        ("Chase-only floor at the plan date (orders due by 2026-09-21 or 2026-10-05)", f.chase_only_units.sum(), "units", PLANNER),
     ]
     validation_rows = [
         ("Planner Dec-Feb gap as share of true gap", rec.gap_units.sum() / v.true_gap_units.sum() * 100, "%", TRUTH),
         ("Calls unchanged when recomputed with true demand", int(v.call_agrees.sum()), "of 9", TRUTH),
+        ("Top 20 cells by stockout days (observable selection), share of true lost revenue", concentration["observable_top20_share_of_true_lost_revenue"] * 100, "%", f"{PLANNER} selection; {TRUTH} value"),
         ("Top-3 priority series shared with the true ranking", len(top3_planner & top3_truth), "of 3", TRUTH),
         ("New-unit share of the change, planner view", rec.new_units.sum() / rec.change_units.sum() * 100, "%", PLANNER),
         ("Quantity share of lost units, simulation truth", s.loc[LATEST_PY, "quantity_lost_units"] / s.loc[LATEST_PY, "lost_units"] * 100, "%", TRUTH),
@@ -828,7 +840,7 @@ def headline_metrics(trend, basis, split, quartiles, chase_years, chase_timing, 
         ("Median first peak stockout, plan week", chase_timing["median_first_peak_stockout_week"], "week", PLANNER),
         ("Unused chase capacity, PY2026", c.loc[LATEST_PY, "unused_chase_capacity_units"], "units", PLANNER),
         ("Peak lost units, PY2026", c.loc[LATEST_PY, "peak_lost_units"], "units", TRUTH),
-        ("Top 20 of 81 cells, share of PY2026 lost revenue", concentration["top20_share_of_lost_revenue"] * 100, "%", TRUTH),
+        ("Top 20 cells by true lost revenue, share of PY2026 lost revenue", concentration["top20_share_of_lost_revenue"] * 100, "%", TRUTH),
         ("Rank correlation: lost revenue vs stockout days", concentration["spearman_lost_revenue_vs_stockout_days"], "rho", PLANNER),
         ("Top-20 cells by lost revenue also top 20 by stockout days", concentration["top20_overlap_with_stockout_ranking"], "of 20", PLANNER),
         ("Series changed: stockout correction (naive on sales vs reconstructed)", cf.loc["Seasonal naive on raw sales (no stockout correction)", "series_whose_action_changes"], "of 9", PLANNER),

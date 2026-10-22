@@ -1,6 +1,8 @@
 # DemandIQ: Peak-Season Demand Planning for Premium Outerwear
 
-**Bottom line.** Peak-season (Dec–Feb) fill fell from 86% to 78% in four plan years. The cause is that every buy starts from last year's sales, and stockouts suppress exactly the peak weeks. Planning the next peak on reconstructed demand means about **10,300 more units (+21%)**: 4,600 shipped before the peak instead of in spring, plus 5,600 new. That decision expires on **Jun 29 – Jul 13, 2026**, the first two weeks of the current 13-week plan.
+**Bottom line.** Peak-season (Dec–Feb) fill fell from 86% to 78% in four plan years. The cause is that every buy starts from last year's sales, and stockouts suppress exactly the peak weeks. Evaluated at the published plan's as-of date, **June 29, 2026**, planning the coming peak on reconstructed demand meant an indicative **10,339 more units (+21%)**: 4,574 shipped before the peak instead of in spring, plus 5,613 new. The orders were due by **Jun 29 – Jul 13**, the first two weeks of the 13-week plan, which the published version spent on summer exceptions.
+
+> **Retrospective decision case.** Every order and chase deadline in this README (Jun 29 – Oct 5, 2026) is evaluated at the June 29 planning date, and all have since passed. They show what the planner should have decided then, not actions still open.
 
 > **Simulation notice.** Weather is public data; demand, inventory and launch actuals are synthetic. No company's internal data is used, and economics are planning-exposure proxies, not accounting profit.
 >
@@ -37,16 +39,16 @@
 **1. Plan the peak on reconstructed demand, and move stock before buying.**
 - **I found:** Dec–Feb fill fell from 85.9% to 78.1% *(simulation truth)*. Each buy starts from last year's sales, which sat 9.0% below last year's reconstructed demand *(observable)*. Reconstructed Dec–Feb demand is 21% above sales *(observable)*.
 - **This means:** the plan shrinks itself every year in the season that matters most.
-- **Therefore:** for the next peak, plan the indicative scenario of **+10,339 units**: 4,574 moved forward from spring replenishment, 5,613 new, and 152 accepted as a gap where the excess guardrail blocks new units. Suppliers must commit by **Jun 29 (6 series) or Jul 13, 2026 (3 series)**.
+- **Therefore:** at the June 29 planning date, plan the coming peak on the indicative scenario of **+10,339 units**: 4,574 moved forward from spring replenishment, 5,613 new, and 152 accepted as a gap where the excess guardrail blocks new units. Suppliers needed to commit by **Jun 29 (6 series) or Jul 13, 2026 (3 series)**.
 - **Owner:** planner proposes, S&OP approves, supply planning confirms. **Confidence:** high on direction; indicative on size until early shipping and supplier capacity are confirmed.
 
 **2. Size chase from the peak gap, not from early shipments.**
 - **I found:** chase fires in mid-September in 75–77% of cell-years whatever their eventual loss. Early shipments can't tell high-loss cells from low-loss ones (0.97 vs 1.02 of plan), and 5,403 units of chase capacity went unused *(observable)*.
-- **Therefore:** order chase by **Sep 21 or Oct 5, 2026** for the priority series. That is the fallback if the buy can't move: about **4,355 units** fit within last season's unused chase capacity.
+- **Therefore:** at the planning date, chase orders for the priority series were due by **Sep 21 or Oct 5, 2026**. As a fallback if the buy couldn't move, about **4,355 units** fit within last season's unused chase capacity. Both dates have passed.
 
 **3. Rank exceptions by stockout days, by SKU × region × channel.**
-- **I found:** the observable stockout-days ranking matches lost revenue (rank correlation 0.90; 15 of the top 20 cells shared).
-- **Therefore:** start each S&OP with the top 20 of 81 cells. They hold 60% of lost revenue *(simulation truth)*.
+- **I found:** the observable stockout-days ranking tracks lost revenue (rank correlation 0.90). The top 20 cells by stockout days capture **53.4%** of true lost revenue, against **60.2%** for the true top 20; 15 of the 20 cells are shared.
+- **Therefore:** start each S&OP with the top 20 of 81 cells by stockout days.
 
 **4. Escalate only shortfalls that survive forecast error.**
 - **I found:** the original 13-week list escalated 3 series. All three disappear once last year's replenishment is counted as supply.
@@ -95,7 +97,8 @@ Demand is what it is. The losses come from three supply rules: the sales-based b
 | Share of PY2026 lost units in Dec–Feb | 83% | Truth |
 | Stock that arrived within the plan year, but after the stockouts | 59% of lost units | Truth |
 | Chase trigger rate, lowest- vs highest-loss cells | 75% vs 77% | Observable |
-| Top 20 of 81 cells, share of lost revenue | 60% | Truth |
+| Top 20 cells by true lost revenue, share of lost revenue | 60.2% | Truth |
+| Top 20 cells by stockout days, share of true lost revenue | 53.4% | Observable selection, truth value |
 
 ### What the forecasting work changes, and what it doesn't
 
@@ -130,6 +133,7 @@ The forecast-value-add result, where commercial input looks worse, is true by co
 The recommendation uses observable data only; truth is used here to score it.
 
 - **Direction holds.** The series priority ranking is identical to true lost revenue (9 of 9), and every call survives recomputation with true demand (9 of 9).
+- **The observable cell selection is good, not perfect.** The top 20 cells by stockout days capture 53.4% of true lost revenue, against 60.2% for the truth-selected top 20.
 - **Size is conservative.** The planner-view gap is 75% of the true gap.
 - **The new/moved split leans to buying:** 54% new units in the planner view, against a 41% quantity share in truth.
 
@@ -168,7 +172,7 @@ Steps 3–7 were run from a local working folder, and their committed outputs ar
 | `03_model_evidence/` | Reconstruction and backtest evidence |
 | `04_scripts/` | Pipeline, Steps 4–8 |
 | `05_outputs/` | Forecasts, decision layer, launch, and `peak_season_diagnosis/` (Step 8) |
-| `06_docs/` | Decision page, brief, technical appendix, step decision records |
+| `06_docs/` | Decision page, brief, portfolio copy, technical appendix, step decision records |
 | `07_streamlit_app/` | Six-page planning app |
 | `08_assets/` | Charts and app screenshots |
 

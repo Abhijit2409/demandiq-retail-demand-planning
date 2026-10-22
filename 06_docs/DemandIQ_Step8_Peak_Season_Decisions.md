@@ -2,17 +2,26 @@
 
 > **Simulation notice.** Portfolio simulation; no real company data. Reproduce every number with `python 04_scripts/step8/step8_peak_diagnosis.py`.
 >
+> **Retrospective decision case.** The recommendation is evaluated at the published plan's as-of date, **June 29, 2026**. Every order and chase deadline below (Jun 29 – Oct 5, 2026) had passed by the time of writing (October 21, 2026). The page shows what the planner should have decided on June 29, not actions still open.
+>
 > **Two kinds of evidence, kept apart.** The recommendation, the decision table and the series tables use only what a planner can observe: sales, in-stock days, receipts, inventory, buys and reconstructed demand. *Simulation truth* (true and lost demand, which no planner sees) appears only in **Why**, to size the problem, and in **Validation**, to score the recommendation.
 
 ## The decision
 
-**Plan the Dec–Feb peak on reconstructed demand, not last year's sales, and act now.** For the next peak, the indicative scenario is **+10,339 units (+21% on last season's Dec–Feb sales)**:
+**On June 29, 2026, the planner should have planned the Dec–Feb peak on reconstructed demand, not last year's sales.** Evaluated at that date, the indicative scenario for the coming peak is **+10,339 units (+21% on last season's Dec–Feb sales)**:
 
 - **4,574 moved forward:** spring replenishment shipped before the peak instead of after it.
 - **5,613 new.**
 - **152 accepted as a gap,** in CTS-001 ECOM, where the excess guardrail blocks new units.
 
-**The scenario is indicative, and the window is closing.** Those units must land before last season's first stockout week, one year on: Nov 30 or Dec 14, 2026. On the 22-week overseas lane, that means committing them by **Jun 29, 2026 for six series and Jul 13 for three**, the first two weeks of the current 13-week plan. The regular October-drop order date (Apr 27) has already passed, so the moved units need suppliers to ship early. DemandIQ does not model that, so it stays open. If neither early shipping nor a new overseas order is possible, chase alone can still land about **4,355 units** within last season's unused chase capacity.
+**The scenario is indicative, and its deadlines were tight even at the planning date.**
+
+- **Arrival:** the units had to land before last season's first stockout week, one year on: Nov 30 or Dec 14, 2026.
+- **Orders:** on the 22-week overseas lane, that meant committing them by **Jun 29, 2026 for six series and Jul 13 for three**. Those were the first two weeks of the 13-week plan, which the published version spent on summer exceptions.
+- **Moved units:** the regular October-drop order date (Apr 27) had already passed, so the moved units needed suppliers to ship early. DemandIQ does not model that, so it stays an open assumption.
+- **Fallback:** if neither early shipping nor a new overseas order had been possible, chase alone could have landed about **4,355 units**, ordered by Sep 21 or Oct 5, 2026, within last season's unused chase capacity.
+
+All of these dates have now passed.
 
 ![Peak-season fill fell from 86% to 78% in four plan years](../08_assets/charts/step8_fill_trend.png)
 
@@ -32,11 +41,13 @@
 
 ## Decision table
 
-| # | Decision | Quantity | Decide by · owner | Guardrail | Confidence |
+Deadlines are as evaluated at the June 29, 2026 planning date; all have passed.
+
+| # | Decision | Quantity | Deadline at the planning date · owner | Guardrail | Confidence |
 | --- | --- | --- | --- | --- | --- |
 | 1 | Plan the peak on reconstructed demand, moving stock before buying | Indicative +10,339 units: 4,574 moved, 5,613 new, 152 accepted gap | Supplier commitment by Jun 29 (6 series) or Jul 13, 2026 (3 series) · planner proposes, Manager of Merchandise Planning approves, supply planning confirms early shipping and capacity | No new units where over-buy exposure ≥ 50% of estimated lost revenue (a policy assumption to set with finance); season-end cover ≤ 8 weeks | Direction: high (calls and priority match the simulation 9 of 9). Size: indicative; early shipping and supplier capacity are unconfirmed |
 | 2 | Size chase from the peak gap, not from early shipments | Fallback floor of about 4,355 units within last season's unused capacity; above that, needs supplier capacity | Chase order by Sep 21 (6 series) or Oct 5, 2026 (3 series), so it lands before the first stockout · planner with supply planning | Chase ≤ 8% of commitment | Medium: last season's headroom is only an indicator |
-| 3 | Rank exceptions by stockout days, by SKU × region × channel | Top 20 of 81 cells | Each monthly S&OP · Demand Planner | – | High: the stockout-days ranking matches lost revenue (rank correlation 0.90; 15 of the top 20 shared) |
+| 3 | Rank exceptions by stockout days, by SKU × region × channel | Top 20 of 81 cells by stockout days (ties broken by sales) | Each monthly S&OP · Demand Planner | – | Good: those 20 cells capture 53.4% of true lost revenue, against 60.2% for the true top 20 (rank correlation 0.90; 15 of 20 cells shared) |
 | 4 | Replace the summer escalation list | 0 ESCALATE, 1 WATCH (APS-001 Wholesale, short only if demand runs 18% above forecast), 5 PROTECT, 3 no action; the published list had 3 ESCALATE | Weekly S&OE · planner decides, supply confirms in-transit replenishment | Re-check weekly as replenishment confirms | Medium: assumes last year's replenishment pattern repeats |
 | 5 | Launch reserve-release rule | Hold the 991-unit reserve (12% of the 8,259-unit buy) centrally; release it to any channel running 5+ pp above planned mix at W1–W2 | Launch checkpoints W1–W2 · planner with merchants | Total launch inventory unchanged | Medium: one seeded launch. The rule fires at W1 (ECOM +5.4 pp) |
 
@@ -64,7 +75,7 @@
 5. **Guardrail:** no new units where inventory-based over-buy exposure is already ≥ 50% of estimated lost revenue (reconstructed minus sold units for the year, at net price). The remainder there is an accepted gap.
 6. **Call:** named from the quantities, so a label can't contradict its numbers.
 
-## Receipt-date and supply check
+## Receipt-date and supply check, at the June 29, 2026 planning date
 
 | Series | Must land by | Last 22-week order date (days left on Jun 29) | Last chase order date | New units vs last season's unused chase | Chase-only floor |
 | --- | --- | --- | --- | --- | ---: |
@@ -78,11 +89,11 @@
 | CTS-001 Wholesale | Nov 30, 2026 | Jun 29 (0) | Sep 21 | 152 vs 41: exceeds | 40 |
 | CTS-001 ECOM | Dec 14, 2026 | Jul 13 (14) | Oct 5 | no new units | 0 |
 
-**Moved units:** last season, half of the spring replenishment had arrived by Apr 13–27. Moving it before the peak means landing it 17–21 weeks earlier, so suppliers must ship part of the season commitment ahead of schedule. **Open:** order-change windows are not modelled.
+**Moved units:** last season, half of the spring replenishment had arrived by Apr 13–27. Moving it before the peak meant landing it 17–21 weeks earlier, so suppliers had to ship part of the season commitment ahead of schedule. **Open:** order-change windows are not modelled.
 
-**New units:** a 22-week order is still possible on the plan date, but supplier capacity is not modelled (**open**). On the chase lane, they fit last season's unused capacity in 3 of 8 series.
+**New units:** on the plan date, a 22-week order was still possible (0–14 days left), but supplier capacity is not modelled (**open**). On the chase lane, they fit last season's unused capacity in 3 of 8 series.
 
-**Floor:** if neither early shipping nor a new overseas order is possible, chase alone lands about 4,355 units.
+**Floor:** if neither early shipping nor a new overseas order had been possible, chase alone could have landed about 4,355 units, with orders due by Sep 21 or Oct 5, 2026.
 
 ## Validation against simulation truth
 
@@ -104,6 +115,7 @@ Truth is used here only to score the recommendation above; nothing in it feeds b
 **What validation says:**
 
 - **Direction is right.** The planner view ranks the series exactly as the true lost revenue does, and every call survives recomputation with true demand.
+- **The observable cell selection is good, not perfect.** The top 20 cells by stockout days capture 53.4% of true lost revenue; the truth-selected top 20 capture 60.2%.
 - **Size is conservative.** Reconstruction finds 75% of the true Dec–Feb gap, so +21% understates the need (truth: +28%).
 - **The new/moved split leans to buying.** The planner view needs 54% new units against a 41% quantity share in truth. That is mostly CTS-001 Retail and IMH-001 ECOM, whose leftover stock sat in regions that didn't run out. A real planner learns this only after the season, so treat new units above the chase floor as the first item to cut if capacity is tight.
 
