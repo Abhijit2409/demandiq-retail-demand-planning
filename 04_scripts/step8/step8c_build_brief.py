@@ -284,7 +284,7 @@ def render(f: dict[str, Fact]) -> str:
 <ul>
 <li><b>Direction: high.</b> Scored against simulation truth, the priority ranking matches {v['rank_match']} and {v['calls_survive']} survives recomputation with true demand. The observable top {v['top20']} cells capture {v['top20_observable']} of true lost revenue, against {v['top20_truth']} for the true top {v['top20']}.<span class=tag>truth</span></li>
 <li><b>Size: conservative.</b> Reconstruction finds {v['gap_recovered']} of the true Dec–Feb gap. The planner view also asks for more new units than truth suggests ({v['new_share_planner']} vs {v['new_share_truth']}).<span class=tag>truth</span></li>
-<li><b>Weekly escalations: conditional.</b> The replenishment estimate missed by {v['replen_week_error']} series-week in backtests. One published escalation needs {v['replen_needed']} of its estimate to clear; a {v['replen_stress']} cut is one scenario, not a bound.</li>
+<li><b>Weekly escalations: conditional.</b> Receipts are projected from last year, not confirmed orders. Replenishment missed by {v['replen_week_error']} series-week in backtests; one published escalation needs {v['replen_needed']} of its estimate to clear. A {v['replen_stress']} cut is one scenario, not a bound.</li>
 <li><b>Limits.</b> Simulated data with the failure modes designed in; the test is that the diagnosis finds them. Lost revenue assumes no substitution; supplier capacity, MOQs and order-change windows are not modelled.</li>
 </ul>
 <div class="foot">Every number is generated from the CSVs: <b>python 04_scripts/run_pipeline.py --check</b> · github.com/Abhijit2409/demandiq-retail-demand-planning · simulated data</div>

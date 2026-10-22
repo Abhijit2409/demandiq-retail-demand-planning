@@ -108,7 +108,9 @@ def test_seasonal_only_reproduces_the_v1_plan(tmp_path):
     rebuilt = pd.read_csv(tmp_path / "DemandIQ_Step5_IBP_Decision_Plan.csv", dtype=str, keep_default_na=False)
     added = [c for c in rebuilt.columns if c not in v1.columns]
     assert added == ["estimated_replenishment_receipt_units", "planned_receipt_units", "supply_view",
+                     "seasonal_receipt_projection_status", "seasonal_receipt_provenance",
                      "replenishment_receipt_provenance", "replenishment_confirmation_status", "call_condition"]
+    assert set(rebuilt.seasonal_receipt_projection_status) == {"PROJECTED_NOT_CONFIRMED"}
     assert (rebuilt.estimated_replenishment_receipt_units.astype(float) == 0).all()
     assert set(rebuilt.supply_view) == {"SEASONAL_DROPS_ONLY"}
     differing = [c for c in v1.columns if not v1[c].equals(rebuilt[c])]

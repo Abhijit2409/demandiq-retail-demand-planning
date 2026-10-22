@@ -58,7 +58,7 @@ Peak-season fill fell from 85.9% to 78.1% between PY2022 and PY2026, while annua
 
 - 83% of lost units fall in Dec–Feb. The original 13-week summer window held 1.1% of lost demand.
 - In that summer window, weather scenarios and stockout correction change none of the nine planner decisions. The supply assumption changes six, which is why the decision belongs in the peak.
-- The published 13-week plan assumed zero replenishment and escalated three series. Adding an estimate of replenishment (6,512 units, last year's pattern shifted 52 weeks, not confirmed open orders), the planning engine escalates none if the estimate arrives as modelled: 0 escalate, 7 protect, 2 hold. A planner must confirm open orders and receipt dates before that replaces the published list. An independent error-band check agrees on 7 of 9 series.
+- The published 13-week plan assumed zero replenishment and escalated three series. Adding an estimate of replenishment (6,512 units, last year's pattern shifted 52 weeks, not confirmed open orders; the seasonal drops are projected the same way), the planning engine escalates none if the estimate arrives as modelled: 0 escalate, 7 protect, 2 hold. A planner must confirm open orders and receipt dates before that replaces the published list. An independent error-band check agrees on 7 of 9 series.
 - Stockout correction lifts Dec–Feb demand by 21% (the true gap is 28%), so the recommended change is conservative.
 - The top 20 of 81 SKU × region × channel cells by true lost revenue hold 60.2% of it. The observable selection, the top 20 by stockout days, captures 53.4% (rank correlation 0.90).
 - At the June 29 planning date the decision was already urgent. 22-week orders had to be committed by Jun 29 to Jul 13 to land before the first stockouts; otherwise chase alone could have landed about 4,355 units.
@@ -69,7 +69,7 @@ At the June 29, 2026 planning date, plan the peak on reconstructed demand and mo
 
 ### Reproducibility
 
-One command rebuilds every output from the repository, and CI fails if any committed number changes. Two pieces were never committed: the data generator, whose CSVs are the frozen source data, and the original demand-reconstruction code. The reconstructed series is recovered exactly from committed backtest evidence. Every number in the two-page brief is generated from the outputs and checked.
+`run_pipeline.py --check` rebuilds the reproducible downstream outputs (weather, the recovered forecasting input, baselines, champion selection, Steps 5–8 and the brief) and fails if any of them differs from the committed version; CI runs the same check. It does not rebuild everything. The Step 3 data generator is still missing, so its CSVs are frozen source data, and the row-level Step 4A reconstruction is still missing. The SKU × channel reconstructed series is recovered exactly from committed backtest evidence, but the steps that need row-level Step 4A cannot run. ETS, SARIMA and Step 4D refits can be re-run, but they drift slightly across library versions, so downstream steps read their committed outputs. Every number in the two-page brief is generated from the outputs and checked.
 
 ### Limitations
 

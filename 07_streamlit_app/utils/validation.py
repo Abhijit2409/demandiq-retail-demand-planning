@@ -92,6 +92,10 @@ def run_validation(exec_df, series_df, weekly_df) -> dict:
         "planned_receipts_13w_units" not in e.index
         or _close(e["planned_receipts_13w_units"], weekly_df["planned_receipt_units"].sum(), 1.0)
     )
+    if "seasonal_receipt_projection_status" in e.index:
+        checks["Seasonal drops marked projected, not confirmed"] = (
+            e["seasonal_receipt_projection_status"] == "PROJECTED_NOT_CONFIRMED"
+        )
     if float(e.get("estimated_replenishment_13w_units", 0.0) or 0.0) > 0:
         checks["Estimated replenishment marked unconfirmed"] = (
             e.get("replenishment_confirmation_status") == "UNCONFIRMED_ESTIMATE"

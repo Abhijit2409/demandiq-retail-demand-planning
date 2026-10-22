@@ -63,8 +63,10 @@ def fill_rate_heatmap(weekly: pd.DataFrame, series_df: pd.DataFrame, title: str 
 def demand_vs_receipts(weekly: pd.DataFrame, highlight_week=None):
     """Portfolio Base demand (line) vs planned receipts (bars).
 
-    Planned receipts = committed seasonal drops + estimated replenishment
-    (unconfirmed; last year's replenishment shifted 52 weeks).
+    Planned receipts = projected seasonal drops + estimated replenishment.
+    Both repeat last year's receipts shifted 52 weeks; neither is a confirmed
+    supplier order. committed_receipt_units is the legacy v1 column name for
+    the seasonal drops.
 
     Receipts arrive in lumpy batches; `highlight_week` (the shared worst-service
     week, from frozen data) is annotated once. Diagnostic alignment, not a
@@ -81,9 +83,9 @@ def demand_vs_receipts(weekly: pd.DataFrame, highlight_week=None):
     fig = go.Figure()
     if split and d["estimated_replenishment_receipt_units"].sum() > 0:
         fig.add_trace(go.Bar(
-            x=xlab, y=d["committed_receipt_units"], name="Seasonal drops",
+            x=xlab, y=d["committed_receipt_units"], name="Seasonal drops (projected)",
             marker_color=theme.P2, opacity=0.85,
-            hovertemplate="%{x}<br>Seasonal drops: %{y:,.0f} units<extra></extra>",
+            hovertemplate="%{x}<br>Seasonal drops (projected): %{y:,.0f} units<extra></extra>",
         ))
         fig.add_trace(go.Bar(
             x=xlab, y=d["estimated_replenishment_receipt_units"],
@@ -92,7 +94,7 @@ def demand_vs_receipts(weekly: pd.DataFrame, highlight_week=None):
         ))
     else:
         fig.add_trace(go.Bar(
-            x=xlab, y=d["committed_receipt_units"], name="Committed receipts",
+            x=xlab, y=d["committed_receipt_units"], name="Seasonal drops (projected)",
             marker_color=theme.P2, opacity=0.85,
             hovertemplate="%{x}<br>Receipts: %{y:,.0f} units<extra></extra>",
         ))
@@ -116,7 +118,7 @@ def demand_vs_receipts(weekly: pd.DataFrame, highlight_week=None):
                 font=dict(color=theme.P1, size=13),
             )
 
-    fig.update_layout(title="Demand vs Planned Receipts" if split else "Demand vs Committed Receipts",
+    fig.update_layout(title="Demand vs Projected Receipts",
                       barmode="stack" if split else "overlay")
     fig.update_yaxes(title_text="units / week")
     return theme.apply_theme(fig, height=390)
@@ -161,8 +163,8 @@ def series_trajectory(weekly_one: pd.DataFrame, label: str, show_title: bool = T
     estimated = ("estimated_replenishment_receipt_units" in d.columns
                  and d["estimated_replenishment_receipt_units"].sum() > 0)
     receipts_col = "planned_receipt_units" if estimated else "committed_receipt_units"
-    receipts_name = ("Planned receipts (incl. estimated replenishment)" if estimated
-                     else "Committed receipts")
+    receipts_name = ("Projected receipts (seasonal drops + estimated replenishment)" if estimated
+                     else "Seasonal drops (projected)")
 
     fig = go.Figure()
     fig.add_trace(go.Bar(

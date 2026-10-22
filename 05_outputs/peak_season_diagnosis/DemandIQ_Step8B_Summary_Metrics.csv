@@ -2,6 +2,8 @@ metric,value,unit,basis
 "Estimated replenishment in the 13-week projection (unconfirmed, not open orders)",6512.172,units,PLANNER_VIEW
 "Last projected replenishment arrival (projected date, not a supplier date)",2026-07-13,date,PLANNER_VIEW
 Replenishment confirmation status,UNCONFIRMED_ESTIMATE,status,PLANNER_VIEW
+Projected seasonal drops in the 13-week projection (not confirmed supplier orders),26597.065,units,PLANNER_VIEW
+Seasonal drop projection status,PROJECTED_NOT_CONFIRMED,status,PLANNER_VIEW
 "Replenishment proxy series WAPE, worst backtest year",29.48,%,PLANNER_VIEW
 "Replenishment proxy portfolio error, worst backtest year",24.178,%,PLANNER_VIEW
 "Replenishment proxy series-week WAPE, best backtest year",56.844,%,PLANNER_VIEW

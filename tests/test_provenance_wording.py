@@ -1,4 +1,10 @@
-"""The 6,512 replenishment units are an estimate, and every surface must say so.
+"""Projected supply must never read as confirmed supplier orders.
+
+The 6,512 replenishment units are an estimate, and every surface must say so.
+The seasonal drops are projected too (last year's seasonal receipts shifted 52
+weeks and grown); they keep the v1 column name committed_receipt_units only
+so the v1 plan reproduces, and a status field marks them as projected.
+
 
 They are last year's replenishment receipts shifted 52 weeks plus SKU growth,
 not confirmed open orders. The Jul 13 check validates projected dates only.
@@ -52,6 +58,8 @@ BANNED = [
     r"no escalation returns(?! under the tested)",
     r"step 5 corrected",
 ]
+# Reader-facing wording only (docs, brief, app): the seasonal drops are not "committed".
+BANNED_READER = [r"committed seasonal", r"committed receipts", r"committed supply"]
 
 
 def text_of(relative: str) -> str:
@@ -89,6 +97,10 @@ def test_outputs_never_call_the_estimate_confirmed(relative):
 
 def test_step5_rows_carry_provenance_and_condition():
     plan = read(STEP5)
+    assert set(plan.seasonal_receipt_projection_status) == {"PROJECTED_NOT_CONFIRMED"}
+    (seasonal,) = set(plan.seasonal_receipt_provenance)
+    assert "SHIFTED 52 WEEKS" in seasonal and "NOT CONFIRMED SUPPLIER ORDERS" in seasonal
+    assert "COMPATIBILITY" in seasonal
     assert set(plan.supply_view) == {"SEASONAL_DROPS_PLUS_ESTIMATED_REPLENISHMENT"}
     assert set(plan.replenishment_confirmation_status) == {"UNCONFIRMED_ESTIMATE"}
     (provenance,) = set(plan.replenishment_receipt_provenance)
@@ -97,6 +109,7 @@ def test_step5_rows_carry_provenance_and_condition():
     assert "ARRIVES AS MODELLED" in condition
     assert "CONFIRM OPEN-ORDER QUANTITIES AND RECEIPT DATES" in condition
     assert "PUBLISHED ESCALATION LIST" in condition
+    assert "PROJECTED SEASONAL DROPS" in condition and "NEITHER IS A CONFIRMED SUPPLIER ORDER" in condition
 
 
 def test_decision_layer_status_is_conditional_with_the_comparison():
@@ -105,6 +118,8 @@ def test_decision_layer_status_is_conditional_with_the_comparison():
     assert status.startswith("IF ESTIMATED REPLENISHMENT ARRIVES AS MODELLED: NO ESCALATION - 2 HOLD + 7 PROTECT")
     assert "WITH ZERO REPLENISHMENT (PUBLISHED LIST): 3 ESCALATE + 6 PROTECT" in status
     assert "CONFIRM OPEN-ORDER QUANTITIES AND RECEIPT DATES" in status
+    assert status.endswith("SEASONAL DROPS ARE PROJECTED FROM LAST YEAR, NOT CONFIRMED SUPPLIER ORDERS")
+    assert exec_row.seasonal_receipt_projection_status == "PROJECTED_NOT_CONFIRMED"
     series = read(STEP6A.format("Series_Decision_Summary"))
     assert series.zero_replenishment_planner_action.value_counts().to_dict() == {"PROTECT": 6, "ESCALATE": 3}
     assert set(series.replenishment_confirmation_status) == {"UNCONFIRMED_ESTIMATE"}
@@ -113,6 +128,7 @@ def test_decision_layer_status_is_conditional_with_the_comparison():
 def test_step8b_labels_are_conditional():
     metrics = read(STEP8B.format("Summary_Metrics")).set_index("metric").value
     assert metrics["Replenishment confirmation status"] == "UNCONFIRMED_ESTIMATE"
+    assert metrics["Seasonal drop projection status"] == "PROJECTED_NOT_CONFIRMED"
     assert "projected date, not a supplier date" in " ".join(metrics.index)
     assert not any(name.startswith("Step 5 corrected") for name in metrics.index)
     assert metrics["Step 5 if the estimate arrives as modelled: ESCALATE"] == "0"
@@ -124,6 +140,36 @@ def test_step8b_labels_are_conditional():
 @pytest.mark.parametrize("name", list(DOCS))
 def test_docs_never_call_the_estimate_confirmed(docs, name):
     assert banned_hits(docs[name]) == []
+    assert [p for p in BANNED_READER if re.search(p, docs[name])] == []
+
+
+@pytest.mark.parametrize("relative", [c for c in CODE if c.startswith("07_streamlit_app")])
+def test_app_never_calls_seasonal_drops_committed(relative):
+    text = text_of(relative).replace("committed_receipt", "")  # the legacy column name is allowed
+    assert [p for p in BANNED_READER if re.search(p, text)] == []
+
+
+@pytest.mark.parametrize("name", ["README", "decision page", "brief", "v1 README", "app README"])
+def test_seasonal_drops_are_explained_as_projected(docs, name):
+    text = docs[name]
+    assert re.search(r"seasonal drops.{0,120}projected|projected.{0,40}seasonal drops|receipts are projected",
+                     text), "seasonal drops must be described as projected"
+    assert re.search(r"not confirmed (?:supplier )?orders", text)
+
+
+@pytest.mark.parametrize("name", ["README", "decision page", "v1 README", "app README"])
+def test_legacy_column_name_is_explained(docs, name):
+    text = docs[name]
+    assert "committed_receipt_units" in text and "projected_not_confirmed" in text
+
+
+def test_portfolio_copy_does_not_overclaim_reproducibility(docs):
+    text = docs["portfolio copy"]
+    assert "one command rebuilds every output" not in text
+    assert "rebuilds the reproducible downstream outputs" in text
+    assert "step 3 data generator is still missing" in text
+    assert "row-level step 4a reconstruction is still missing" in text
+    assert "refits" in text and "drift" in text
 
 
 @pytest.mark.parametrize("relative", CODE)

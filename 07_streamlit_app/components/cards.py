@@ -68,9 +68,12 @@ def status_banner(exec_row):
     estimate = float(exec_row.get("estimated_replenishment_13w_units", 0.0) or 0.0)
     conditional = estimate > 0
 
-    supply = "Seasonal drops"
+    # committed_receipt_units is a legacy v1 name: the seasonal drops are projected
+    # from last year's receipts, not confirmed supplier orders.
+    supply = "Projected seasonal drops (not confirmed orders)"
     if conditional:
-        supply = f"Seasonal drops + {fmt.units_k(estimate)} estimated replenishment (unconfirmed)"
+        supply = (f"Projected seasonal drops + {fmt.units_k(estimate)} estimated "
+                  "replenishment (unconfirmed)")
     response = f"{escalate} ESCALATE · {protect} PROTECT · {hold} HOLD · 0 auto chase"
     cells = [
         ("Portfolio health", f"Base fill {base_fill} vs {target} target"),
@@ -98,8 +101,9 @@ def status_banner(exec_row):
                     + (f" and {severe} more under severe weather" if severe else "")
                     + f", so {protect} are protected")
     if conditional:
-        headline += (". A planner must confirm open-order quantities and receipt dates "
-                     "before this replaces the published escalation list")
+        headline += (". Both supply streams are projected from last year, not confirmed "
+                     "supplier orders: a planner must confirm open-order quantities and "
+                     "receipt dates before this replaces the published escalation list")
     grid = "".join(
         f'<div class="diq-banner-cell"><div class="k">{_esc(k)}</div>'
         f'<div class="v">{_esc(v)}</div></div>' for k, v in cells

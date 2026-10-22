@@ -56,10 +56,11 @@ Deadlines are as evaluated at the June 29, 2026 planning date; all have passed.
 The published 13-week plan (v1) counted only the seasonal drops as supply, so it assumed zero replenishment, and it escalated three series for August–September misses. Step 5 now adds an **estimate** of replenishment receipts.
 
 - **Estimate, not orders.** Last year's replenishment receipts in the same weeks, shifted 52 weeks and grown by SKU: **6,512 units**. These are not confirmed open orders.
+- **Seasonal drops are projected too.** The seasonal drops are projected too: last year's seasonal receipts shifted 52 weeks and grown by SKU, not confirmed supplier orders. They keep the v1 column name `committed_receipt_units` so the published plan still reproduces; `seasonal_receipt_projection_status = PROJECTED_NOT_CONFIRMED` marks them on every row. Both results below assume the drops land as projected.
 - **Projected timing.** Under the replenishment policy nothing can be ordered inside the window, so if last year's pattern repeats, the units land by **Jul 13, 2026**, ahead of the weeks they serve. That check validates the projected dates against the policy, not supplier commitments.
 - **Result, if the estimate arrives as modelled.** Service holds in every week and no series is escalated: **0 ESCALATE, 7 PROTECT, 2 HOLD**.
 - **Result with zero replenishment.** The published list: **3 ESCALATE, 6 PROTECT** (APS-001 Wholesale, CTS-001 Retail, IMH-001 Wholesale).
-- **Before acting.** A planner must confirm open-order quantities and receipt dates before the conditional calls replace the published escalation list.
+- **Before acting.** A planner must confirm open-order quantities and receipt dates, for the seasonal drops and the replenishment, before the conditional calls replace the published escalation list.
 
 Step 8B (`DemandIQ_Step8B_Step5_Reconciliation.csv`) compares the engine's conditional calls with Step 8's error-band queue, series by series:
 

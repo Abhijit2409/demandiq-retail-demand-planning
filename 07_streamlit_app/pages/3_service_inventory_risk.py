@@ -26,7 +26,9 @@ def render():
                    f"<b>{fmt.pct(e['base_13w_fill_rate'])}</b> and no series misses the weekly "
                    f"92% target. The risk is coverage: {n_below} of 9 finish below the 2.5-week "
                    "policy. The estimate is last year's replenishment shifted 52 weeks, not "
-                   f"confirmed open orders; with zero replenishment, {zero} series escalate.")
+                   f"confirmed open orders; with zero replenishment, {zero} series escalate. "
+                   "The seasonal drops are projected the same way and are not confirmed "
+                   "supplier orders either.")
     cards.page_header(
         "Planning · Flagship", "Service & Inventory Risk",
         "Where does weekly execution or ending coverage fall short?",
@@ -77,8 +79,8 @@ def render():
                              'service there. Diagnostic alignment, not proven causality.')
         else:
             receipts_note = ('Receipts arrive in batches: estimated replenishment (unconfirmed, '
-                             'projected for the first three weeks), then the seasonal drops. If '
-                             'the estimate lands as modelled every week is covered; the gaps '
+                             'projected for the first three weeks), then the projected seasonal '
+                             'drops. If both land as modelled every week is covered; the gaps '
                              'between drops show up as thin ending cover, not missed sales.')
         st.markdown(f'<div class="diq-note">{receipts_note}</div>', unsafe_allow_html=True)
     with c2:

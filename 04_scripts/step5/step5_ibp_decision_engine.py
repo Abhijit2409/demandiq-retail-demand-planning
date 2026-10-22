@@ -91,6 +91,18 @@ SUPPLY_VIEWS = {
 }
 
 # Provenance written to every row of the plan.
+#
+# Seasonal drops keep the v1 column name committed_receipt_units so the v1
+# plan stays reproducible column for column. The name is legacy: the
+# quantities are PROJECTED from last year's seasonal receipts, shifted 52
+# weeks and grown by SKU. They are not confirmed supplier orders. The two
+# fields below say so on every row, in both supply views.
+SEASONAL_RECEIPT_PROJECTION_STATUS = "PROJECTED_NOT_CONFIRMED"
+SEASONAL_RECEIPT_PROVENANCE = (
+    "PROJECTION: PRIOR-YEAR SEASONAL RECEIPTS SHIFTED 52 WEEKS X (1 + SKU GROWTH); "
+    "NOT CONFIRMED SUPPLIER ORDERS. COLUMN committed_receipt_units KEEPS ITS V1 NAME "
+    "FOR COMPATIBILITY ONLY"
+)
 REPLENISHMENT_PROVENANCE = {
     "seasonal_plus_replenishment": (
         "ESTIMATE: PRIOR-YEAR REPLENISHMENT RECEIPTS SHIFTED 52 WEEKS X "
@@ -105,10 +117,15 @@ REPLENISHMENT_CONFIRMATION_STATUS = {
 CALL_CONDITION = {
     "seasonal_plus_replenishment": (
         "CONDITIONAL: VALID ONLY IF THE ESTIMATED REPLENISHMENT ARRIVES AS "
-        "MODELLED. A PLANNER MUST CONFIRM OPEN-ORDER QUANTITIES AND RECEIPT "
-        "DATES BEFORE THESE CALLS REPLACE THE PUBLISHED ESCALATION LIST"
+        "MODELLED AND THE PROJECTED SEASONAL DROPS LAND AS PROJECTED; NEITHER "
+        "IS A CONFIRMED SUPPLIER ORDER. A PLANNER MUST CONFIRM OPEN-ORDER "
+        "QUANTITIES AND RECEIPT DATES BEFORE THESE CALLS REPLACE THE "
+        "PUBLISHED ESCALATION LIST"
     ),
-    "seasonal_only": "ZERO-REPLENISHMENT VIEW: THE PUBLISHED (V1) ESCALATION LIST",
+    "seasonal_only": (
+        "ZERO-REPLENISHMENT VIEW: THE PUBLISHED (V1) ESCALATION LIST; ITS "
+        "SEASONAL DROPS ARE ALSO PROJECTED, NOT CONFIRMED SUPPLIER ORDERS"
+    ),
 }
 
 parser = argparse.ArgumentParser(
@@ -1491,7 +1508,9 @@ else:
 #
 # Seasonal drops (v1 and v2), column committed_receipt_units: last
 # year's seasonal receipts in the same week, shifted 52 weeks, plus
-# frozen SKU growth (the v1 "committed receipt proxy").
+# frozen SKU growth. A PROJECTION, not confirmed supplier orders; the
+# column keeps its v1 name only so the v1 plan reproduces exactly
+# (see seasonal_receipt_projection_status).
 #
 # Estimated replenishment (v2), column
 # estimated_replenishment_receipt_units: last year's replenishment
@@ -1587,7 +1606,7 @@ if len(late_replenishment) > 0:
 
 print("\nSupply view:", SUPPLY_VIEWS[SUPPLY_VIEW])
 print(
-    "Forward seasonal receipts:",
+    "Projected seasonal drops (not confirmed supplier orders):",
     round(forward_receipts["committed_receipt_units"].sum(), 2),
 )
 print(
@@ -5313,6 +5332,8 @@ output["receipt_projection_method"] = (
 
 
 output["supply_view"] = SUPPLY_VIEWS[SUPPLY_VIEW]
+output["seasonal_receipt_projection_status"] = SEASONAL_RECEIPT_PROJECTION_STATUS
+output["seasonal_receipt_provenance"] = SEASONAL_RECEIPT_PROVENANCE
 output["replenishment_receipt_provenance"] = REPLENISHMENT_PROVENANCE[SUPPLY_VIEW]
 output["replenishment_confirmation_status"] = (
     REPLENISHMENT_CONFIRMATION_STATUS[SUPPLY_VIEW]
@@ -5440,7 +5461,7 @@ final_checks = {
         .all(),
 
 
-    "No negative committed receipts":
+    "No negative projected seasonal receipts":
         output[
             "committed_receipt_units"
         ]
@@ -5452,7 +5473,7 @@ final_checks = {
         output["estimated_replenishment_receipt_units"].ge(0).all(),
 
 
-    "Planned receipts = committed seasonal + estimated replenishment":
+    "Planned receipts = projected seasonal drops + estimated replenishment":
         np.allclose(
             output["planned_receipt_units"],
             output["committed_receipt_units"]
@@ -5469,6 +5490,13 @@ final_checks = {
                 > LATEST_PROJECTED_REPLENISHMENT_ARRIVAL
             )
         ).any(),
+
+
+    "Seasonal drops labelled projected, not confirmed":
+        (
+            output["seasonal_receipt_projection_status"]
+            == SEASONAL_RECEIPT_PROJECTION_STATUS
+        ).all(),
 
 
     "Estimated replenishment labelled unconfirmed":
@@ -5910,7 +5938,7 @@ print(
 
 
 print(
-    f"Committed seasonal receipts 13W: "
+    f"Projected seasonal drops 13W:    "
     f"{plan['committed_receipt_units'].sum():,.2f}"
 )
 

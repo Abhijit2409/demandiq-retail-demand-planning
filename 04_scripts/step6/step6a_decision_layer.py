@@ -16,9 +16,11 @@ from pathlib import Path
 #
 #   1. What demand are we planning for (next 13 weeks)?
 #   2. Can current inventory + planned supply protect service?
-#      (planned = committed seasonal drops + ESTIMATED replenishment;
-#      the estimate is not confirmed open orders, so the zero-
-#      replenishment calls are carried alongside for comparison)
+#      (planned = PROJECTED seasonal drops + ESTIMATED replenishment;
+#      neither is a confirmed supplier order, so the zero-
+#      replenishment calls are carried alongside for comparison.
+#      The seasonal drops keep the v1 column name
+#      committed_receipt_units for compatibility only.)
 #   3. Where are the important service / inventory risks?
 #   4. What should the planner do?
 #
@@ -134,7 +136,15 @@ def add_supply_fields(plan):
         plan["replenishment_receipt_provenance"] = "NONE COUNTED (ZERO REPLENISHMENT)"
         plan["replenishment_confirmation_status"] = "NOT_APPLICABLE"
         plan["call_condition"] = (
-            "ZERO-REPLENISHMENT VIEW: THE PUBLISHED (V1) ESCALATION LIST"
+            "ZERO-REPLENISHMENT VIEW: THE PUBLISHED (V1) ESCALATION LIST; ITS "
+            "SEASONAL DROPS ARE ALSO PROJECTED, NOT CONFIRMED SUPPLIER ORDERS"
+        )
+    if "seasonal_receipt_projection_status" not in plan.columns:
+        plan["seasonal_receipt_projection_status"] = "PROJECTED_NOT_CONFIRMED"
+        plan["seasonal_receipt_provenance"] = (
+            "PROJECTION: PRIOR-YEAR SEASONAL RECEIPTS SHIFTED 52 WEEKS X (1 + SKU GROWTH); "
+            "NOT CONFIRMED SUPPLIER ORDERS. COLUMN committed_receipt_units KEEPS ITS V1 NAME "
+            "FOR COMPATIBILITY ONLY"
         )
     return plan
 
@@ -327,6 +337,7 @@ series["call_depends_on_estimated_replenishment"] = (
     series["planner_action"] != series["zero_replenishment_planner_action"]
 ).astype(int)
 for column in (
+    "seasonal_receipt_projection_status",
     "replenishment_confirmation_status", "call_condition",
 ):
     series[column] = step5[column].iloc[0]
@@ -344,7 +355,8 @@ weekly = step5[[
     # demand
     "base_forecast_units",
     "mild_scenario_forecast_units", "severe_scenario_forecast_units",
-    # supply: planned = committed seasonal drops + estimated replenishment
+    # supply: planned = projected seasonal drops (legacy name committed_receipt_units)
+    #         + estimated replenishment
     "committed_receipt_units",
     "estimated_replenishment_receipt_units", "planned_receipt_units",
     # base inventory flow (frozen simulation outputs)
@@ -428,6 +440,7 @@ portfolio_decision_status = (
         "THE PUBLISHED ESCALATION LIST"
         if USES_ESTIMATE else ""
     )
+    + "; SEASONAL DROPS ARE PROJECTED FROM LAST YEAR, NOT CONFIRMED SUPPLIER ORDERS"
 )
 
 exec_row = {
@@ -517,6 +530,8 @@ exec_row = {
     "economic_value_basis": "planning exposure proxy (not accounting profit)",
     "provenance": SOURCE_NOTE,
     "supply_view": SUPPLY_VIEW,
+    "seasonal_receipt_projection_status": step5["seasonal_receipt_projection_status"].iloc[0],
+    "seasonal_receipt_provenance": step5["seasonal_receipt_provenance"].iloc[0],
     "replenishment_receipt_provenance": step5["replenishment_receipt_provenance"].iloc[0],
     "replenishment_confirmation_status": step5["replenishment_confirmation_status"].iloc[0],
     "call_condition": step5["call_condition"].iloc[0],
@@ -564,7 +579,7 @@ qa["Exec demand == weekly demand sum"] = np.isclose(
 qa["Exec shipments == weekly base_shipped sum"] = np.isclose(
     base_ship, float(weekly["base_shipped_units"].sum()), atol=1e-6
 )
-qa["Planned receipts = committed seasonal + estimated replenishment"] = bool(np.allclose(
+qa["Planned receipts = projected seasonal drops + estimated replenishment"] = bool(np.allclose(
     step5["planned_receipt_units"],
     step5["committed_receipt_units"]
     + step5["estimated_replenishment_receipt_units"],
@@ -580,6 +595,9 @@ qa["Exec receipts == weekly receipts sum"] = np.isclose(
 qa["Estimated replenishment carries an unconfirmed status"] = (
     not USES_ESTIMATE
     or exec_row["replenishment_confirmation_status"] == "UNCONFIRMED_ESTIMATE"
+)
+qa["Seasonal drops carry a projected status"] = (
+    exec_row["seasonal_receipt_projection_status"] == "PROJECTED_NOT_CONFIRMED"
 )
 qa["Zero-replenishment comparison covers every series"] = bool(
     series["zero_replenishment_planner_action"].notna().all()

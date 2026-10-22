@@ -181,7 +181,7 @@ def risk_calls(plan: pd.DataFrame, receipts: pd.Series) -> pd.DataFrame:
 
 
 def receipts_at(plan: pd.DataFrame, scale: float) -> pd.Series:
-    """Committed seasonal drops plus the estimated replenishment scaled by `scale`."""
+    """Projected seasonal drops (legacy column committed_receipt_units) plus the scaled estimate."""
     return plan.committed_receipt_units + scale * plan.estimated_replenishment_receipt_units
 
 
@@ -346,6 +346,9 @@ def summary_metrics(backtest: pd.DataFrame, series_backtest: pd.DataFrame, rec: 
         ("Last projected replenishment arrival (projected date, not a supplier date)",
          last_projected_arrival(plan).strftime("%Y-%m-%d"), "date"),
         ("Replenishment confirmation status", plan.replenishment_confirmation_status.iloc[0], "status"),
+        ("Projected seasonal drops in the 13-week projection (not confirmed supplier orders)",
+         plan.committed_receipt_units.sum(), "units"),
+        ("Seasonal drop projection status", plan.seasonal_receipt_projection_status.iloc[0], "status"),
         ("Replenishment proxy series WAPE, worst backtest year", backtest.series_wape_pct.max(), "%"),
         ("Replenishment proxy portfolio error, worst backtest year", backtest.portfolio_error_pct.abs().max(), "%"),
         ("Replenishment proxy series-week WAPE, best backtest year", backtest.series_week_wape_pct.min(), "%"),
