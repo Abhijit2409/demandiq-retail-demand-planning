@@ -18,6 +18,10 @@ Evidence basis (stated on every output)
                       size the problem and to check the planner view, never as
                       a planning input.
 
+The peak-buy recommendation (Peak_Buy_Recommendation, Peak_Buy_by_Region,
+Peak_Move_Feasibility) uses PLANNER_VIEW data only. SIMULATION_TRUTH appears
+in the diagnosis, for sizing, and in Peak_Buy_Validation, never in a decision.
+
 Run from anywhere:
     python 04_scripts/step8/step8_peak_diagnosis.py
 """
@@ -53,8 +57,14 @@ CHASE_CAP_SHARE = 0.08
 CHASE_EARLY_WEEKS = (8, 13)  # opening of the chase window, plan weeks
 PEAK_BLOCK_START_WEEK = 14  # October drop
 PEAK_MONTHS = (12, 1, 2)
-HOLD_OVERBUY_RATIO = 0.5  # hold the buy if over-buy exposure >= 50% of lost revenue
-RETIME_ONLY_BUY_SHARE = 0.25  # re-time only if under 25% of the gap needs new units
+SPRING_MONTHS = (3, 4, 5, 6)  # replenishment that lands after the peak
+PLAN_AS_OF = pd.Timestamp("2026-06-29")  # first week of the published 13-week plan
+OVERSEAS_LEAD_WEEKS = 22  # seasonal buy lane, assumptions workbook
+CHASE_LEAD_WEEKS = 10  # chase lane, assumptions workbook
+# Policy assumption, to agree with finance: add no new units to a series whose
+# inventory-based over-buy exposure is already >= 50% of its estimated lost revenue.
+GUARDRAIL_OVERBUY_RATIO = 0.5
+DIAGNOSIS, RECOMMENDATION, VALIDATION = "DIAGNOSIS", "RECOMMENDATION", "VALIDATION"
 SKU_GROWTH = {"APS-001": 0.040, "CTS-001": 0.055, "IMH-001": 0.065}
 LATEST_PY = "PY2026"
 SERIES = ["sku_id", "channel_id"]
@@ -79,7 +89,7 @@ HISTORY_COLUMNS = [
     "seasonal_receipt_units", "replenishment_receipt_units", "chase_receipt_units",
     "chase_triggered_flag", "return_restock_units", "beginning_inventory_units",
     "ending_inventory_units", "lost_revenue_opportunity_cad", "net_revenue_after_returns_cad",
-    "total_overbuy_event_exposure_cad",
+    "total_overbuy_event_exposure_cad", "net_asp_cad", "receipt_event_label",
 ]
 
 
@@ -453,43 +463,174 @@ def corrected_queue(plan: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
-# --------------------------------------------------------------------------- decision inputs
+# --------------------------------------------------------------------------- recommendation (planner view only)
 
-def peak_buy_inputs(series: pd.DataFrame, cells: pd.DataFrame, history: pd.DataFrame) -> pd.DataFrame:
-    """Next peak-buy change by SKU x channel, planned on reconstructed demand.
+def _peak_cells(history: pd.DataFrame) -> pd.DataFrame:
+    """Observable inputs per SKU x region x channel for the peak buy."""
+    latest = history[history.plan_year == LATEST_PY]
+    start, end = WINDOWS["Dec-Feb, PY2026"]
+    peak = latest[latest.week_start.between(start, end)].assign(stockout_days=lambda d: 7 - d.in_stock_days)
+    cells = peak.groupby(CELL).agg(peak_stockout_days=("stockout_days", "sum"),
+                                   peak_sold_units=("observed_sales_units", "sum"))
+    season_end = latest[latest.week_start == latest.week_start.max()]
+    cells["season_end_stock_units"] = season_end.groupby(CELL).ending_inventory_units.sum()
+    cells["spring_replenishment_units"] = (
+        latest[latest.month.isin(SPRING_MONTHS)].groupby(CELL).replenishment_receipt_units.sum()
+    )
+    return cells.fillna(0.0).reset_index()
 
-    change = (reconstructed - sold) Dec-Feb demand last season x (1 + SKU growth).
-    The quantity/timing shares split it into units to buy and units to move
-    from spring replenishment into the pre-peak drops.
+
+def _allocate_change(cells: pd.DataFrame, change: pd.Series, blocks_new: pd.Series) -> pd.DataFrame:
+    """Allocate each series' change to regions, then split it into moved and new units.
+
+    Regions receive the change in proportion to their Dec-Feb stockout days
+    (by sales if a series had none). In each region, stock that was still
+    unsold at season end and had arrived as spring replenishment can be moved
+    into the pre-peak delivery. The rest is new units, unless the guardrail
+    blocks new units for the series, in which case it is an accepted gap.
+    """
+    out = cells.merge(change.rename("series_change").reset_index(), on=SERIES)
+    out = out.merge(blocks_new.rename("blocks_new").reset_index(), on=SERIES)
+    stockout_total = out.groupby(SERIES).peak_stockout_days.transform("sum")
+    sales_total = out.groupby(SERIES).peak_sold_units.transform("sum")
+    weight = np.where(stockout_total > 0, out.peak_stockout_days / stockout_total.where(stockout_total > 0, 1),
+                      out.peak_sold_units / sales_total)
+    out["allocated_change_units"] = np.round(out.series_change * weight)
+    out["movable_units"] = np.floor(np.minimum(out.season_end_stock_units, out.spring_replenishment_units))
+    out["moved_units"] = np.minimum(out.allocated_change_units, out.movable_units)
+    remainder = out.allocated_change_units - out.moved_units
+    out["new_units"] = np.where(out.blocks_new, 0.0, remainder)
+    out["accepted_gap_units"] = remainder - out.new_units
+    return out.drop(columns=["series_change", "blocks_new"])
+
+
+def _call(moved: pd.Series, new: pd.Series) -> pd.Series:
+    """Name the action from the quantities, so the label can never contradict them."""
+    labels = np.select([(new > 0) & (moved > 0), new > 0, moved > 0],
+                       ["Buy and re-time", "Buy only", "Re-time only"], default="No change")
+    return pd.Series(labels, index=moved.index)
+
+
+def peak_buy_recommendation(series: pd.DataFrame, history: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Indicative next-peak scenario by SKU x channel, from observable data only.
+
+    1. Gap: last season's Dec-Feb reconstructed demand minus sales, grown by
+       the SKU growth assumption.
+    2. Allocate it to regions by Dec-Feb stockout days (they rank with lost
+       revenue at rho 0.90; see Loss_Concentration).
+    3. Move before you buy: re-time stock that sat unsold at season end and
+       arrived as spring replenishment; only the remainder is new units.
+    4. Guardrail: no new units where the inventory-based over-buy exposure is
+       already >= GUARDRAIL_OVERBUY_RATIO of estimated lost revenue
+       (reconstructed minus sold units for the year, at net price).
+    The scenario stays indicative until the open items in
+    Peak_Move_Feasibility are confirmed with supply planning.
     """
     start, end = WINDOWS["Dec-Feb, PY2026"]
-    peak = series[series.week_start.between(start, end)].groupby(SERIES)[
-        ["observed_units", "reconstructed_units", "true_units"]
-    ].sum()
-    split = cells.loc[LATEST_PY].groupby(SERIES)[["lost_units", "quantity_lost_units", "timing_lost_units"]].sum()
     latest = history[history.plan_year == LATEST_PY]
-    money = latest.groupby(SERIES).agg(lost_revenue_cad=("lost_revenue_opportunity_cad", "sum"),
-                                       overbuy_exposure_cad=("total_overbuy_event_exposure_cad", "sum"))
-    out = peak.join(split).join(money)
-    out["gap_units"] = out.reconstructed_units - out.observed_units
-    out["gap_pct_of_sales"] = out.gap_units / out.observed_units * 100
-    out["growth"] = [SKU_GROWTH[s] for s in out.index.get_level_values("sku_id")]
-    out["next_peak_change_units"] = out.gap_units * (1 + out.growth)
-    quantity_share = out.quantity_lost_units / out.lost_units
-    out["buy_more_units"] = out.next_peak_change_units * quantity_share
-    out["pull_forward_units"] = out.next_peak_change_units - out.buy_more_units
-    out["priority_rank"] = out.lost_revenue_cad.rank(ascending=False, method="min").astype(int)
-    # Guardrail first: where over-buy exposure is already comparable to lost
-    # revenue, hold the buy. Where almost all of the gap is timing, re-time
-    # existing units instead of buying more.
-    overbuy_ratio = out.overbuy_exposure_cad / out.lost_revenue_cad
-    buy_share = out.buy_more_units / out.next_peak_change_units
-    out["call"] = np.select(
-        [overbuy_ratio >= HOLD_OVERBUY_RATIO, buy_share < RETIME_ONLY_BUY_SHARE],
-        ["Hold: over-buy exposure already near lost revenue", "Re-time: move units into the pre-peak drops"],
-        default="Buy more and re-time")
-    out["basis"] = f"gap: {PLANNER}; split, lost revenue and over-buy: {TRUTH}"
-    return out.reset_index().sort_values("priority_rank")
+    this_year = series[series.plan_year == LATEST_PY]
+    rec = (this_year[this_year.week_start.between(start, end)]
+           .groupby(SERIES)[["observed_units", "reconstructed_units"]].sum()
+           .rename(columns={"observed_units": "decfeb_sold_units",
+                            "reconstructed_units": "decfeb_reconstructed_units"}))
+    year = this_year.groupby(SERIES)[["observed_units", "reconstructed_units"]].sum()
+    rec["gap_units"] = rec.decfeb_reconstructed_units - rec.decfeb_sold_units
+    rec["gap_pct_of_sales"] = rec.gap_units / rec.decfeb_sold_units * 100
+    rec["growth"] = rec.index.get_level_values("sku_id").map(SKU_GROWTH).to_numpy()
+    sold = latest.groupby(SERIES).observed_sales_units.sum()
+    rec["net_asp_cad"] = (latest.net_asp_cad * latest.observed_sales_units).groupby(
+        [latest.sku_id, latest.channel_id]).sum() / sold
+    rec["estimated_lost_revenue_cad"] = (year.reconstructed_units - year.observed_units) * rec.net_asp_cad
+    rec["overbuy_exposure_cad"] = latest.groupby(SERIES).total_overbuy_event_exposure_cad.sum()
+    rec["overbuy_vs_estimated_lost_revenue"] = rec.overbuy_exposure_cad / rec.estimated_lost_revenue_cad
+    rec["guardrail_blocks_new_units"] = rec.overbuy_vs_estimated_lost_revenue >= GUARDRAIL_OVERBUY_RATIO
+    regions = _allocate_change(_peak_cells(history), rec.gap_units * (1 + rec.growth), rec.guardrail_blocks_new_units)
+    totals = regions.groupby(SERIES)[["allocated_change_units", "moved_units", "new_units", "accepted_gap_units"]].sum()
+    rec = rec.join(totals.rename(columns={"allocated_change_units": "change_units"}))
+    rec["call"] = _call(rec.moved_units, rec.new_units)
+    rec["priority_rank"] = rec.estimated_lost_revenue_cad.rank(ascending=False, method="min").astype(int)
+    rec["status"] = "INDICATIVE: open supply checks in Peak_Move_Feasibility"
+    rec["basis"] = PLANNER
+    regions["basis"] = PLANNER
+    return rec.reset_index().sort_values("priority_rank"), regions
+
+
+def peak_move_feasibility(history: pd.DataFrame, rec: pd.DataFrame) -> pd.DataFrame:
+    """Check the scenario against receipt dates and the supply limits DemandIQ models.
+
+    Required arrival: last season's first Dec-Feb stockout week in the series,
+    one year on. Moved units are spring replenishment pulled forward, which is
+    a purchase-order change; PO-change windows are not modelled, so that stays
+    open. New units need a 22-week overseas order by the latest date, or the
+    10-week chase lane within its capacity cap.
+    """
+    latest = history[history.plan_year == LATEST_PY]
+    start, end = WINDOWS["Dec-Feb, PY2026"]
+    peak = latest[latest.week_start.between(start, end)]
+    first_stockout = peak[peak.in_stock_days < 7].groupby(SERIES).week_start.min()
+    spring = (latest[latest.month.isin(SPRING_MONTHS)]
+              .groupby(SERIES + ["week_start"]).replenishment_receipt_units.sum().reset_index())
+    spring["cumulative_share"] = (spring.groupby(SERIES).replenishment_receipt_units.cumsum()
+                                  / spring.groupby(SERIES).replenishment_receipt_units.transform("sum"))
+    spring_half = spring[spring.cumulative_share >= 0.5].groupby(SERIES).week_start.min()
+    commitment = latest.groupby(CELL).committed_buy_units_plan_year.first().groupby(SERIES).sum()
+    october_drop = latest[latest.receipt_event_label == "OCT_PEAK"].week_start.min()
+
+    out = rec.set_index(SERIES)[["change_units", "moved_units", "new_units", "call",
+                                 "guardrail_blocks_new_units"]].copy()
+    out["last_peak_first_stockout"] = first_stockout
+    out["required_arrival_next_peak"] = first_stockout + pd.Timedelta(weeks=52)
+    out["spring_receipts_half_arrived"] = spring_half
+    out["weeks_earlier_for_moved_units"] = (spring_half - first_stockout).dt.days / 7
+    out["october_drop_order_date_next_peak"] = october_drop + pd.Timedelta(weeks=52 - OVERSEAS_LEAD_WEEKS)
+    out["latest_order_overseas_lane"] = out.required_arrival_next_peak - pd.Timedelta(weeks=OVERSEAS_LEAD_WEEKS)
+    out["days_left_on_overseas_lane"] = (out.latest_order_overseas_lane - PLAN_AS_OF).dt.days
+    out["latest_order_chase_lane"] = out.required_arrival_next_peak - pd.Timedelta(weeks=CHASE_LEAD_WEEKS)
+    out["chase_headroom_last_season_units"] = (
+        commitment * CHASE_CAP_SHARE - latest.groupby(SERIES).chase_receipt_units.sum())
+    out["moved_units_check"] = np.where(
+        out.moved_units > 0, "OPEN: pull spring orders forward; PO-change window not modelled", "Not needed")
+    out["new_units_check"] = np.select(
+        [out.new_units == 0, out.days_left_on_overseas_lane >= 0,
+         out.new_units <= out.chase_headroom_last_season_units],
+        ["Not needed", "OPEN: 22-week order still possible; supplier capacity not modelled",
+         "Chase lane, within last season's unused capacity"],
+        default="OPEN: exceeds chase capacity; needs supplier capacity")
+    out["new_units_fit_chase_headroom"] = out.new_units <= out.chase_headroom_last_season_units
+    # Floor: if neither a PO change nor a new 22-week order is possible, only
+    # chase can land before the stockouts, and chase units are new units.
+    out["chase_only_units"] = np.where(
+        out.guardrail_blocks_new_units, 0.0,
+        np.minimum(out.moved_units + out.new_units, np.floor(out.chase_headroom_last_season_units.clip(lower=0))))
+    out["basis"] = PLANNER
+    return out.reset_index()
+
+
+# --------------------------------------------------------------------------- validation (simulation truth)
+
+def peak_buy_validation(rec: pd.DataFrame, history: pd.DataFrame, series: pd.DataFrame,
+                        truth_cells: pd.DataFrame) -> pd.DataFrame:
+    """Score the planner-view scenario against simulation truth. Never an input to it."""
+    start, end = WINDOWS["Dec-Feb, PY2026"]
+    peak = series[series.week_start.between(start, end)].groupby(SERIES)[["observed_units", "true_units"]].sum()
+    latest = history[history.plan_year == LATEST_PY]
+    v = rec.set_index(SERIES)[["gap_units", "change_units", "moved_units", "new_units", "call",
+                               "priority_rank", "overbuy_exposure_cad", "estimated_lost_revenue_cad"]].copy()
+    v["true_gap_units"] = peak.true_units - peak.observed_units
+    v["gap_recovered_share"] = v.gap_units / v.true_gap_units
+    v["true_lost_revenue_cad"] = latest.groupby(SERIES).lost_revenue_opportunity_cad.sum()
+    v["true_priority_rank"] = v.true_lost_revenue_cad.rank(ascending=False, method="min").astype(int)
+    split = truth_cells.loc[LATEST_PY].groupby(SERIES)[["lost_units", "quantity_lost_units"]].sum()
+    v["planner_new_share"] = v.new_units / v.change_units
+    v["true_quantity_share"] = split.quantity_lost_units / split.lost_units
+    growth = v.index.get_level_values("sku_id").map(SKU_GROWTH).to_numpy()
+    true_blocks = v.overbuy_exposure_cad / v.true_lost_revenue_cad >= GUARDRAIL_OVERBUY_RATIO
+    truth = _allocate_change(_peak_cells(history), v.true_gap_units * (1 + growth), true_blocks)
+    truth_totals = truth.groupby(SERIES)[["moved_units", "new_units"]].sum().reindex(v.index)
+    v["call_with_true_demand"] = _call(truth_totals.moved_units, truth_totals.new_units)
+    v["call_agrees"] = v.call == v.call_with_true_demand
+    v["basis"] = TRUTH
+    return v.reset_index().sort_values("priority_rank")
 
 
 def launch_rule() -> dict:
@@ -620,8 +761,19 @@ def chart_forward_sensitivity(counterfactuals: pd.DataFrame, path: Path) -> None
 
 # --------------------------------------------------------------------------- run
 
+def _date(value: pd.Timestamp) -> str:
+    return pd.Timestamp(value).strftime("%Y-%m-%d")
+
+
 def headline_metrics(trend, basis, split, quartiles, chase_years, chase_timing, concentration,
-                     windows, counterfactuals, queue, launch) -> pd.DataFrame:
+                     windows, counterfactuals, queue, launch, recommendation, feasibility,
+                     validation) -> pd.DataFrame:
+    """Every headline number, with its evidence basis and its role.
+
+    DIAGNOSIS sizes and explains the problem; RECOMMENDATION is computed from
+    PLANNER_VIEW data only; VALIDATION scores the recommendation against
+    SIMULATION_TRUTH.
+    """
     t = trend.set_index("plan_year")
     b = basis.set_index("plan_year")
     s = split.set_index("plan_year")
@@ -629,6 +781,31 @@ def headline_metrics(trend, basis, split, quartiles, chase_years, chase_timing, 
     w = windows.set_index("window")
     cf = counterfactuals.set_index("case")
     q = quartiles.set_index("peak_loss_quartile")
+    rec, f, v = recommendation, feasibility, validation
+    buying = f[f.new_units > 0]
+    top3_planner = set(rec.nsmallest(3, "priority_rank")[SERIES].apply(tuple, axis=1))
+    top3_truth = set(v.nsmallest(3, "true_priority_rank")[SERIES].apply(tuple, axis=1))
+    plan_rows = [
+        ("Indicative next-peak change", rec.change_units.sum(), "units", PLANNER),
+        ("  of which moved forward from spring replenishment", rec.moved_units.sum(), "units", PLANNER),
+        ("  of which new units", rec.new_units.sum(), "units", PLANNER),
+        ("  of which accepted gap (guardrail blocks new units)", rec.accepted_gap_units.sum(), "units", PLANNER),
+        ("Series: re-time only", int((rec.call == "Re-time only").sum()), "of 9", PLANNER),
+        ("Series: buy and re-time", int((rec.call == "Buy and re-time").sum()), "of 9", PLANNER),
+        ("Series where the guardrail blocks new units", int(rec.guardrail_blocks_new_units.sum()), "of 9", PLANNER),
+        ("Regular October-drop order date for the next peak", _date(f.october_drop_order_date_next_peak.iloc[0]), "date", PLANNER),
+        ("Plan as-of date", _date(PLAN_AS_OF), "date", PLANNER),
+        ("Latest 22-week order date for the next peak, earliest series", _date(f.latest_order_overseas_lane.min()), "date", PLANNER),
+        ("Series needing new units that fit last season's chase headroom", f"{int(buying.new_units_fit_chase_headroom.sum())} of {len(buying)}", "series", PLANNER),
+        ("Chase-only floor: units that can still land if no PO change or 22-week order is possible", f.chase_only_units.sum(), "units", PLANNER),
+    ]
+    validation_rows = [
+        ("Planner Dec-Feb gap as share of true gap", rec.gap_units.sum() / v.true_gap_units.sum() * 100, "%", TRUTH),
+        ("Calls unchanged when recomputed with true demand", int(v.call_agrees.sum()), "of 9", TRUTH),
+        ("Top-3 priority series shared with the true ranking", len(top3_planner & top3_truth), "of 3", TRUTH),
+        ("New-unit share of the change, planner view", rec.new_units.sum() / rec.change_units.sum() * 100, "%", PLANNER),
+        ("Quantity share of lost units, simulation truth", s.loc[LATEST_PY, "quantity_lost_units"] / s.loc[LATEST_PY, "lost_units"] * 100, "%", TRUTH),
+    ]
     rows = [
         ("Dec-Feb fill, PY2022", t.loc["PY2022", "peak_fill_truth"] * 100, "%", TRUTH),
         ("Dec-Feb fill, PY2026", t.loc[LATEST_PY, "peak_fill_truth"] * 100, "%", TRUTH),
@@ -667,7 +844,12 @@ def headline_metrics(trend, basis, split, quartiles, chase_years, chase_timing, 
         ("Launch ECOM lost units with reserve idle", launch["ecom_lost_units"], "units", TRUTH),
         ("Launch reserve units", launch["reserve_units"], "units", PLANNER),
     ]
-    return pd.DataFrame(rows, columns=["metric", "value", "unit", "basis"])
+    table = ([(*row, DIAGNOSIS) for row in rows] + [(*row, RECOMMENDATION) for row in plan_rows]
+             + [(*row, VALIDATION) for row in validation_rows])
+    out = pd.DataFrame(table, columns=["metric", "value", "unit", "basis", "role"])
+    out["value"] = [round(float(x), 2) if isinstance(x, (int, float, np.integer, np.floating)) else x
+                    for x in out.value]
+    return out
 
 
 def main() -> None:
@@ -685,10 +867,13 @@ def main() -> None:
     plan = forward_inputs(series)
     counterfactuals, counterfactual_tiers = forward_counterfactuals(plan)
     queue = corrected_queue(plan)
-    buy_inputs = peak_buy_inputs(series, cells, history)
+    recommendation, recommendation_regions = peak_buy_recommendation(series, history)
+    feasibility = peak_move_feasibility(history, recommendation)
+    validation = peak_buy_validation(recommendation, history, series, cells)
     launch = launch_rule()
     metrics = headline_metrics(trend, basis, split, quartiles, chase_years, chase_timing, concentration,
-                               windows, counterfactuals, queue, launch)
+                               windows, counterfactuals, queue, launch, recommendation, feasibility,
+                               validation)
 
     outputs = {
         "DemandIQ_Step8_Fill_Trend.csv": trend,
@@ -702,18 +887,22 @@ def main() -> None:
         "DemandIQ_Step8_Forward_Plan_Counterfactuals.csv": counterfactuals,
         "DemandIQ_Step8_Forward_Plan_Tiers_by_Case.csv": counterfactual_tiers,
         "DemandIQ_Step8_Corrected_SOE_Queue.csv": queue,
-        "DemandIQ_Step8_Peak_Buy_Inputs.csv": buy_inputs,
+        "DemandIQ_Step8_Peak_Buy_Recommendation.csv": recommendation,
+        "DemandIQ_Step8_Peak_Buy_by_Region.csv": recommendation_regions,
+        "DemandIQ_Step8_Peak_Move_Feasibility.csv": feasibility,
+        "DemandIQ_Step8_Peak_Buy_Validation.csv": validation,
         "DemandIQ_Step8_Headline_Metrics.csv": metrics,
     }
     for name, frame in outputs.items():
-        frame.round(4).to_csv(OUT_DIR / name, index=False)
+        numeric = frame.select_dtypes("number").columns
+        frame.round({column: 4 for column in numeric}).to_csv(OUT_DIR / name, index=False, date_format="%Y-%m-%d")
 
     chart_fill_trend(trend, CHART_DIR / "step8_fill_trend.png")
     chart_lost_by_month(history, CHART_DIR / "step8_lost_demand_by_month.png")
     chart_forward_sensitivity(counterfactuals, CHART_DIR / "step8_forward_plan_sensitivity.png")
 
     pd.set_option("display.width", 200)
-    print(metrics.assign(value=metrics.value.round(2)).to_string(index=False))
+    print(metrics.to_string(index=False))
     print(f"\nWrote {len(outputs)} files to {OUT_DIR.relative_to(ROOT)} and 3 charts to {CHART_DIR.relative_to(ROOT)}")
 
 
