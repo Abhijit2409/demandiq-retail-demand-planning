@@ -1,38 +1,38 @@
 metric,value,unit,basis,role
-"Dec-Feb fill, PY2022",85.85,%,SIMULATION_TRUTH,DIAGNOSIS
-"Dec-Feb fill, PY2026",78.09,%,SIMULATION_TRUTH,DIAGNOSIS
+"Dec-Feb fill, PY2022",85.853,%,SIMULATION_TRUTH,DIAGNOSIS
+"Dec-Feb fill, PY2026",78.089,%,SIMULATION_TRUTH,DIAGNOSIS
 "Dec-Feb fill on reconstructed demand, PY2026",82.62,%,PLANNER_VIEW,DIAGNOSIS
-"Annual fill, PY2026",91.28,%,SIMULATION_TRUTH,DIAGNOSIS
+"Annual fill, PY2026",91.282,%,SIMULATION_TRUTH,DIAGNOSIS
 "Lost revenue, PY2022",3419337.03,CAD,SIMULATION_TRUTH,DIAGNOSIS
 "Lost revenue, PY2026",6652337.58,CAD,SIMULATION_TRUTH,DIAGNOSIS
-"Lost revenue as share of net revenue, PY2026",9.11,%,SIMULATION_TRUTH,DIAGNOSIS
-Share of PY2026 lost units in Dec-Feb,82.58,%,SIMULATION_TRUTH,DIAGNOSIS
-"Buy basis vs prior-year true demand, PY2023",-4.99,%,SIMULATION_TRUTH,DIAGNOSIS
-"Buy basis vs prior-year true demand, PY2026",-8.94,%,SIMULATION_TRUTH,DIAGNOSIS
-"Buy basis vs prior-year reconstructed demand, PY2026",-9.02,%,PLANNER_VIEW,DIAGNOSIS
-Timing share of PY2026 lost units,58.78,%,SIMULATION_TRUTH,DIAGNOSIS
+"Lost revenue as share of net revenue, PY2026",9.106,%,SIMULATION_TRUTH,DIAGNOSIS
+Share of PY2026 lost units in Dec-Feb,82.576,%,SIMULATION_TRUTH,DIAGNOSIS
+"Buy basis vs prior-year true demand, PY2023",-4.985,%,SIMULATION_TRUTH,DIAGNOSIS
+"Buy basis vs prior-year true demand, PY2026",-8.942,%,SIMULATION_TRUTH,DIAGNOSIS
+"Buy basis vs prior-year reconstructed demand, PY2026",-9.021,%,PLANNER_VIEW,DIAGNOSIS
+Timing share of PY2026 lost units,58.777,%,SIMULATION_TRUTH,DIAGNOSIS
 "Chase trigger rate, lowest-loss quartile",75.49,%,PLANNER_VIEW,DIAGNOSIS
-"Chase trigger rate, highest-loss quartile",77.23,%,PLANNER_VIEW,DIAGNOSIS
-"Chase units per cell-year, lowest-loss quartile",93.12,units,PLANNER_VIEW,DIAGNOSIS
-"Chase units per cell-year, highest-loss quartile",118.61,units,PLANNER_VIEW,DIAGNOSIS
-"Peak lost units per cell-year, highest-loss quartile",328.04,units,SIMULATION_TRUTH,DIAGNOSIS
+"Chase trigger rate, highest-loss quartile",77.228,%,PLANNER_VIEW,DIAGNOSIS
+"Chase units per cell-year, lowest-loss quartile",93.122,units,PLANNER_VIEW,DIAGNOSIS
+"Chase units per cell-year, highest-loss quartile",118.605,units,PLANNER_VIEW,DIAGNOSIS
+"Peak lost units per cell-year, highest-loss quartile",328.035,units,SIMULATION_TRUTH,DIAGNOSIS
 "Median first chase trigger, plan week",11.5,week,PLANNER_VIEW,DIAGNOSIS
 "Median first peak stockout, plan week",27.0,week,PLANNER_VIEW,DIAGNOSIS
-"Unused chase capacity, PY2026",5402.86,units,PLANNER_VIEW,DIAGNOSIS
-"Peak lost units, PY2026",13039.18,units,SIMULATION_TRUTH,DIAGNOSIS
-"Top 20 of 81 cells, share of PY2026 lost revenue",60.2,%,SIMULATION_TRUTH,DIAGNOSIS
-Rank correlation: lost revenue vs stockout days,0.9,rho,PLANNER_VIEW,DIAGNOSIS
+"Unused chase capacity, PY2026",5402.863,units,PLANNER_VIEW,DIAGNOSIS
+"Peak lost units, PY2026",13039.178,units,SIMULATION_TRUTH,DIAGNOSIS
+"Top 20 of 81 cells, share of PY2026 lost revenue",60.199,%,SIMULATION_TRUTH,DIAGNOSIS
+Rank correlation: lost revenue vs stockout days,0.899,rho,PLANNER_VIEW,DIAGNOSIS
 Top-20 cells by lost revenue also top 20 by stockout days,15.0,of 20,PLANNER_VIEW,DIAGNOSIS
 Series changed: stockout correction (naive on sales vs reconstructed),0.0,of 9,PLANNER_VIEW,DIAGNOSIS
-"Reconstruction uplift, S&OE window last year",0.36,%,PLANNER_VIEW,DIAGNOSIS
-"Reconstruction uplift, Dec-Feb PY2026",21.04,%,PLANNER_VIEW,DIAGNOSIS
-Share of true Dec-Feb gap recovered by reconstruction,74.97,%,SIMULATION_TRUTH,DIAGNOSIS
+"Reconstruction uplift, S&OE window last year",0.361,%,PLANNER_VIEW,DIAGNOSIS
+"Reconstruction uplift, Dec-Feb PY2026",21.036,%,PLANNER_VIEW,DIAGNOSIS
+Share of true Dec-Feb gap recovered by reconstruction,74.971,%,SIMULATION_TRUTH,DIAGNOSIS
 Series changed: weather scenario,0.0,of 9,PLANNER_VIEW,DIAGNOSIS
 Series changed: seasonal naive instead of ETS,3.0,of 9,PLANNER_VIEW,DIAGNOSIS
 Series changed: replenishment added to supply,6.0,of 9,PLANNER_VIEW,DIAGNOSIS
 Corrected queue: ESCALATE,0.0,series,PLANNER_VIEW,DIAGNOSIS
 Corrected queue: WATCH,1.0,series,PLANNER_VIEW,DIAGNOSIS
-Launch buy vs latent demand,21.29,%,SIMULATION_TRUTH,DIAGNOSIS
+Launch buy vs latent demand,21.293,%,SIMULATION_TRUTH,DIAGNOSIS
 Launch ECOM lost units with reserve idle,158.8,units,SIMULATION_TRUTH,DIAGNOSIS
 Launch reserve units,991.1,units,PLANNER_VIEW,DIAGNOSIS
 Indicative next-peak change,10339.0,units,PLANNER_VIEW,RECOMMENDATION
@@ -47,8 +47,8 @@ Plan as-of date,2026-06-29,date,PLANNER_VIEW,RECOMMENDATION
 "Latest 22-week order date for the next peak, earliest series",2026-06-29,date,PLANNER_VIEW,RECOMMENDATION
 Series needing new units that fit last season's chase headroom,3 of 8,series,PLANNER_VIEW,RECOMMENDATION
 Chase-only floor: units that can still land if no PO change or 22-week order is possible,4355.0,units,PLANNER_VIEW,RECOMMENDATION
-Planner Dec-Feb gap as share of true gap,74.97,%,SIMULATION_TRUTH,VALIDATION
+Planner Dec-Feb gap as share of true gap,74.971,%,SIMULATION_TRUTH,VALIDATION
 Calls unchanged when recomputed with true demand,9.0,of 9,SIMULATION_TRUTH,VALIDATION
 Top-3 priority series shared with the true ranking,3.0,of 3,SIMULATION_TRUTH,VALIDATION
 "New-unit share of the change, planner view",54.29,%,PLANNER_VIEW,VALIDATION
-"Quantity share of lost units, simulation truth",41.22,%,SIMULATION_TRUTH,VALIDATION
+"Quantity share of lost units, simulation truth",41.223,%,SIMULATION_TRUTH,VALIDATION

@@ -847,7 +847,7 @@ def headline_metrics(trend, basis, split, quartiles, chase_years, chase_timing, 
     table = ([(*row, DIAGNOSIS) for row in rows] + [(*row, RECOMMENDATION) for row in plan_rows]
              + [(*row, VALIDATION) for row in validation_rows])
     out = pd.DataFrame(table, columns=["metric", "value", "unit", "basis", "role"])
-    out["value"] = [round(float(x), 2) if isinstance(x, (int, float, np.integer, np.floating)) else x
+    out["value"] = [round(float(x), 3) if isinstance(x, (int, float, np.integer, np.floating)) else x
                     for x in out.value]
     return out
 

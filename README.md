@@ -1,534 +1,177 @@
-# DemandIQ
+# DemandIQ: Peak-Season Demand Planning for Premium Outerwear
 
-## Demand Planning, IBP & New Product Launch Decision System for Premium Outdoor Apparel
+**Bottom line.** Peak-season (Dec–Feb) fill fell from 86% to 78% in four plan years. The cause is that every buy starts from last year's sales, and stockouts suppress exactly the peak weeks. Planning the next peak on reconstructed demand means about **10,300 more units (+21%)**: 4,600 shipped before the peak instead of in spring, plus 5,600 new. That decision expires on **Jun 29 – Jul 13, 2026**, the first two weeks of the current 13-week plan.
 
-DemandIQ is a portfolio simulation that connects forecasting to planning decisions across mature products, inventory and service risk, S&OE escalation, and new-product launch planning.
-
-> **Risk detection is not execution authorization.**
+> **Simulation notice.** Weather is public data; demand, inventory and launch actuals are synthetic. No company's internal data is used, and economics are planning-exposure proxies, not accounting profit.
 >
-> DemandIQ surfaces where planner attention is required, but it does not automatically release chase, transfer, or reallocation actions when supplier lead time, PO-change windows, transfer feasibility, or execution cost are not fully modeled.
+> Every number is labelled by evidence. **Observable** numbers use only what a planner can see: sales, in-stock days, receipts, inventory and reconstructed demand. **Simulation truth** numbers use hidden generator fields, and appear only to size the problem and to validate the recommendation.
 
-> **Data note:** This project uses public, synthetic, and derived data. No real company internal planning data was used. Economic values are planning exposure proxies, not accounting profit.
-
----
-
-## Start Here
-
-- **Case study:** [`06_docs/DemandIQ_Final_Portfolio_Case_Study.pdf`](./06_docs/DemandIQ_Final_Portfolio_Case_Study.pdf)
-- **Streamlit application source:** [`07_streamlit_app/`](./07_streamlit_app/)
-- **Model evidence:** [`03_model_evidence/`](./03_model_evidence/)
-- **Analytical pipeline:** [`04_scripts/`](./04_scripts/)
-- **Decision outputs:** [`05_outputs/`](./05_outputs/)
-- **Planning documentation:** [`06_docs/`](./06_docs/)
-
-### Application preview
-
-**Executive Command Center**
-
-![Executive Command Center](./08_assets/screenshots/01_executive_command_center.png)
-
-**Service & Inventory Risk**
-
-![Service and Inventory Risk](./08_assets/screenshots/03_service_inventory_risk.png)
-
-**Planner Decision Queue**
-
-![Planner Decision Queue](./08_assets/screenshots/04_planner_decision_queue.png)
+**Start here:** [Decision page](./06_docs/DemandIQ_Step8_Peak_Season_Decisions.md) · [Two-page brief (PDF)](./06_docs/DemandIQ_Peak_Season_Brief.pdf) · [Diagnosis script](./04_scripts/step8/step8_peak_diagnosis.py) · [Technical appendix](./06_docs/DemandIQ_Technical_Appendix.md)
 
 ---
 
-## Project at a glance
+## The decision and who makes it
 
-DemandIQ addresses two related planning problems:
+> Peak-season fill has fallen from 86% to 78% in four years. Why, and what should the Demand Planner change in the next fall/winter buy, chase plan and launch allocation to recover lost sales without building excess?
 
-1. **Mature-product planning:** recover demand hidden by stockouts, select defensible forecasts, test bounded weather scenarios, evaluate inventory and service risk, and prioritize planner actions.
-2. **New-product planning:** forecast a product with no sales history, reconcile analytical and commercial views, set the initial buy, learn from launch sell-through, measure Forecast Value Add, and roll the plan forward.
+| Role | Part in the decision |
+| --- | --- |
+| Demand Planner, outerwear portfolio | Owns the demand plan; proposes buys, chase and allocation |
+| Manager, Merchandise Planning | Approves at the monthly S&OP review |
+| Merchants and commercial teams | Supply growth targets and launch input |
+| Supply planning | Confirms lead times, early shipping and supplier capacity |
+| Finance | Sets the revenue plan and the excess guardrail |
 
-### Products
+**The planning year:**
 
-| SKU | Product | Status |
-|---|---|---|
-| **APS-001** | Alpine Performance Shell | Mature |
-| **CTS-001** | Core Technical Shell | Mature |
-| **IMH-001** | Insulated Midlayer Hoody | Mature |
-| **HIS-001** | Hybrid Insulated Shell | Early launch |
-
-### Channels
-
-- **ECOM:** direct online
-- **RETAIL:** company-operated stores
-- **WHOLESALE:** partner / wholesale channel
-
-### Planning horizons
-
-- **13 weeks, weekly:** S&OE execution and launch monitoring
-- **18 months, monthly:** IBP, consensus planning, and rolling forecast
+1. **Post-season review (Mar–Apr):** reconstruct last season's demand and measure peak fill against target.
+2. **Seasonal buy review (22+ weeks before the October drop):** size the peak on reconstructed demand.
+3. **Chase gate (late September):** commit chase early enough to land before December.
+4. **Weekly S&OE (October to February):** exceptions ranked by lost revenue.
+5. **Log every action** and feed the results into next season's review.
 
 ---
 
-## Key outcomes
+## Recommendations
 
-### Mature-product engine
+**1. Plan the peak on reconstructed demand, and move stock before buying.**
+- **I found:** Dec–Feb fill fell from 85.9% to 78.1% *(simulation truth)*. Each buy starts from last year's sales, which sat 9.0% below last year's reconstructed demand *(observable)*. Reconstructed Dec–Feb demand is 21% above sales *(observable)*.
+- **This means:** the plan shrinks itself every year in the season that matters most.
+- **Therefore:** for the next peak, plan the indicative scenario of **+10,339 units**: 4,574 moved forward from spring replenishment, 5,613 new, and 152 accepted as a gap where the excess guardrail blocks new units. Suppliers must commit by **Jun 29 (6 series) or Jul 13, 2026 (3 series)**.
+- **Owner:** planner proposes, S&OP approves, supply planning confirms. **Confidence:** high on direction; indicative on size until early shipping and supplier capacity are confirmed.
 
-| Metric | Result |
-|---|---:|
-| Base 13-week demand | **36,434.66 units** |
-| Portfolio Base fill | **98.77%** |
-| Service target | **92%** |
-| P1 weekly-service risks | **3 of 9 series** |
-| Planner queue | **3 ESCALATE · 6 PROTECT** |
-| Automatic chase / reallocation | **0 units** |
-| Base unserved-demand revenue exposure | **≈ CAD 192K** |
+**2. Size chase from the peak gap, not from early shipments.**
+- **I found:** chase fires in mid-September in 75–77% of cell-years whatever their eventual loss. Early shipments can't tell high-loss cells from low-loss ones (0.97 vs 1.02 of plan), and 5,403 units of chase capacity went unused *(observable)*.
+- **Therefore:** order chase by **Sep 21 or Oct 5, 2026** for the priority series. That is the fallback if the buy can't move: about **4,355 units** fit within last season's unused chase capacity.
 
-### New-product engine
+**3. Rank exceptions by stockout days, by SKU × region × channel.**
+- **I found:** the observable stockout-days ranking matches lost revenue (rank correlation 0.90; 15 of the top 20 cells shared).
+- **Therefore:** start each S&OP with the top 20 of 81 cells. They hold 60% of lost revenue *(simulation truth)*.
 
-| Metric | Result |
-|---|---:|
-| V0 13-week cold-start demand | **≈ 6,888 units** |
-| V3 approved 13-week demand | **≈ 7,577 units** |
-| Frozen initial buy | **≈ 8,259 units** |
-| Flex reserve | **≈ 991 units** |
-| Observed launch sales | **≈ 6,650 units** |
-| Launch fill | **≈ 97.7%** |
-| Cycle-02 like-for-like revision | **≈ -3.05%** |
-| Current lifecycle | **EARLY_LAUNCH** |
+**4. Escalate only shortfalls that survive forecast error.**
+- **I found:** the original 13-week list escalated 3 series. All three disappear once last year's replenishment is counted as supply.
+- **Therefore:** the corrected list is **0 ESCALATE, 1 WATCH, 5 PROTECT, 3 no action**, with each row tested across the champion model's error band.
 
----
+**5. Release launch reserve on a channel-mix rule.**
+- **I found:** the launch bought 21% more than latent demand, yet ECOM lost 159 units while a 991-unit reserve sat idle.
+- **Therefore:** release reserve to any channel running 5+ pp above planned mix at W1–W2. On the seeded launch, that rule fires at W1.
 
-# Mature Product Planning
-
-## 1. Recover demand before forecasting
-
-Observed sales can understate demand when inventory is unavailable. I compared three reconstruction approaches and selected **Seasonal Profile Imputation** for stockout-censored rows.
-
-| Reconstruction metric | Result |
-|---|---:|
-| Censored-row WAPE | **26.08%** |
-| Bias | **-2.61%** |
-| Lost-demand recovery | **95.68%** |
-| Full-stockout recovery | **98.43%** |
-
-The governed forecast target is `reconstructed_demand_units`.
-
-A hidden synthetic demand series is used only to evaluate reconstruction quality. It is never used as a forecast feature.
+Full table with quantities, dates, owners and guardrails: [decision page](./06_docs/DemandIQ_Step8_Peak_Season_Decisions.md).
 
 ---
 
-## 2. Backtest at the planning grain
+## Evidence
 
-The governed mature forecasting grain is:
+### The planning process that creates the problem
 
-**Week × SKU × Channel**
+- **The buy:** set from last year's sales (censored by stockouts), grown by a planner assumption, on a 22-week overseas lead time.
+- **Supply arrives in four seasonal drops, July to October.** Replenishment is throttled from October to mid-January because of the lead time.
+- **Chase:** fires when trailing shipments run 15% above plan. It has a 10-week lead time and is capped at 8% of the season commitment.
 
-That produces **9 forecast series** across 3 products and 3 channels.
+### The metric
 
-Each series uses the same backtest design:
+| Tier | Metric | PY2026 |
+| --- | --- | --- |
+| Primary | Peak fill on reconstructed demand (Dec–Feb units sold ÷ reconstructed demand), target 92% | 82.6% *(observable)*; 78.1% *(truth)* |
+| Currency | Lost revenue on unserved demand | CAD 6.65M, 9.1% of net revenue *(truth, upper bound)* |
+| Secondary | Buy basis vs reconstructed demand; chase capacity used; forecast value add vs seasonal naive | −9.0%; 4.8% of an 8% cap; WAPE 11.7% vs 14.3% |
+| Guardrail | Over-buy exposure (markdown, liquidation, obsolescence); season-end cover ≤ 8 weeks; chase ≤ 8% of commitment | CAD 1.09M |
 
-- 52-week seasonality
-- 104-week initial training window
-- 13-week forecast horizon
-- 12 expanding-window folds
-- WAPE as the primary metric
-- Bias monitored separately
+### The drivers
 
-### Final champion mix
+- **Lost units** = weekly demand above available stock.
+- **Available stock** = opening stock + four seasonal drops + replenishment + chase + restocked returns.
 
-- **8 ETS models**
-- **1 Seasonal 2-Year Moving Average baseline**
-- **0 SARIMA champions**
+Demand is what it is. The losses come from three supply rules: the sales-based buy, the peak throttle and the shipment-based chase.
 
-Champion WAPE ranges from approximately **8.4% to 21.7%**.
+### The bottleneck
 
-A simpler baseline was retained when added complexity did not produce a meaningful improvement.
+![Peak-season fill fell from 86% to 78% in four plan years](./08_assets/charts/step8_fill_trend.png)
 
----
+![81% of lost demand falls in Dec–Feb; the S&OE window holds 1.1%](./08_assets/charts/step8_lost_demand_by_month.png)
 
-## 3. Use weather as a bounded planning scenario
+| Finding | Value | Evidence |
+| --- | --- | --- |
+| Share of PY2026 lost units in Dec–Feb | 83% | Truth |
+| Stock that arrived within the plan year, but after the stockouts | 59% of lost units | Truth |
+| Chase trigger rate, lowest- vs highest-loss cells | 75% vs 77% | Observable |
+| Top 20 of 81 cells, share of lost revenue | 60% | Truth |
 
-Weather is treated as a planning overlay, not as future leakage.
+### What the forecasting work changes, and what it doesn't
 
-- **Weeks 1 to 3:** `NOWCAST_REQUIRED` unless a real point-in-time nowcast is available
-- **Weeks 4 to 13:** Mild / Normal / Severe seasonal scenarios
-- Realized future weather is never used
+![The 13-week queue moves with supply, not forecasting technique](./08_assets/charts/step8_forward_plan_sensitivity.png)
 
-| Scenario | 13-week demand |
-|---|---:|
-| Mild | **≈ 36,036 units** |
-| Base | **36,434.66 units** |
-| Severe | **≈ 36,677 units** |
-
-The scenario range is narrow relative to supply and inventory timing risk in the same horizon.
+In the original summer window, weather scenarios and stockout correction change none of the 9 planner decisions. Swapping the model changes 3, and only through growth. Swapping the supply assumption changes 6. In the peak, stockout correction changes demand by +21%, which is why it belongs in the buy.
 
 ---
 
-## 4. Surface weekly service risk, not only portfolio fill
+## How the forecast supports the decision
 
-The portfolio Base fill rate is **98.77%** against a **92%** target. That looks healthy at first, but weekly execution shows something different.
+- **Demand reconstruction.** Seasonal-profile imputation on stockout-censored weeks:
+    - censored-row bias −2.6%, against −21.0% for a naive gross-up;
+    - recovers 75% of the true Dec–Feb gap, so the +21% buy change is conservative;
+    - recovery varies by year (104%, 101% and 79% for PY2024–PY2026), because method selection used simulation truth. With real data, select by masking known in-stock weeks.
+- **Backtest.** 12 expanding folds (104-week minimum, 13-week horizon) across 9 SKU × channel series:
+    - ETS wins 8 of 9; no SARIMA model was selected;
+    - champion WAPE is 11.7% against 14.3% for seasonal naive.
+- **Weather.** Used as a scenario, never as a future-known input. It is untested in the peak, where the generator moves demand 12–13%.
+- **Leakage governance.** True demand, lost demand and generator variables are excluded from every model and decision input.
 
-| SKU | Channel | 13W Fill | Worst Weekly Fill | Action |
-|---|---|---:|---:|---|
-| APS-001 | WHOLESALE | 93.5% | **33.2%** | **ESCALATE** |
-| CTS-001 | RETAIL | 95.6% | **65.4%** | **ESCALATE** |
-| IMH-001 | WHOLESALE | 96.1% | **74.1%** | **ESCALATE** |
+## The launch: the same decision without history
 
-All three share a worst week of **2026-08-24**, when committed receipts are zero across all nine mature series.
+HIS-001 has no sales history, so it is planned from analogs: 60% APS-001, 40% IMH-001. The plan runs through analytical, commercial, consensus and approved versions to an initial buy of 8,259 units, including a 991-unit central reserve.
 
-That timing coincides with localized service failures, but I do **not** treat it as proven causation.
+The buy was large enough in total (21% above latent demand). ECOM still lost 159 units because the reserve wasn't released. Placement, not quantity, was the problem: hence recommendation 5.
 
----
+The forecast-value-add result, where commercial input looks worse, is true by construction (launch truth was centred on the analytical forecast) and is not used as evidence.
 
-## 5. Separate risk detection from execution authorization
+## Validation against simulation truth
 
-The final mature decision queue is:
+The recommendation uses observable data only; truth is used here to score it.
 
-- **3 P1:** ESCALATE
-- **6 P2:** PROTECT
+- **Direction holds.** The series priority ranking is identical to true lost revenue (9 of 9), and every call survives recomputation with true demand (9 of 9).
+- **Size is conservative.** The planner-view gap is 75% of the true gap.
+- **The new/moved split leans to buying:** 54% new units in the planner view, against a 41% quantity share in truth.
 
-All nine series also finish below the 2.5-week coverage policy.
+## Assumptions and limitations
 
-The approximately **7,000-unit gap to coverage policy** is a diagnostic planning signal, not an automatic buy recommendation.
-
-DemandIQ does not automatically release chase, transfer, or reallocation because supplier lead times, expedite feasibility, PO-change windows, and transfer feasibility are not fully modeled.
-
-The output is therefore a planner review queue rather than a false-precision recommendation.
-
----
-
-# New Product Launch Planning
-
-## 6. Forecast a product without its own sales history
-
-**HIS-001, Hybrid Insulated Shell** is modeled as a cold-start product.
-
-The final governed analog blend is:
-
-- **60% APS-001**
-- **40% IMH-001**
-
-### V0 analytical baseline
-
-| Horizon | V0 demand |
-|---|---:|
-| 13 weeks | **≈ 6,888 units** |
-| First 12 months | **≈ 27,480 units** |
-| 18 months | **≈ 44,919 units** |
+| Assumption | Basis | Changes a decision? |
+| --- | --- | --- |
+| Peak throttle and shipment-based chase | Designed into the generator; the assumptions register says so | Yes. Diagnosis must find them from observable data, and it does |
+| 92% service target; 2.5-week safety stock; 8-week excess threshold | Policy assumptions, not derived from economics | Yes, for which series are flagged |
+| 50% over-buy guardrail | Policy assumption, to set with finance | Yes, for CTS-001 ECOM |
+| Early shipping, order-change windows, supplier capacity, MOQ | Not modelled | Yes: the +10,339 scenario is indicative until confirmed |
+| Lost demand is fully lost (no substitution) | Simplification | Lost revenue is an upper bound |
+| Wholesale modelled as weekly demand | Simplification; real wholesale is largely pre-booked | Wholesale numbers are the least reliable |
+| Style level only; no sizes or colours | Scope | Buys are set by style, not style-colour-size |
 
 ---
 
-## 7. Move from analytical forecast to approved consensus
-
-The launch process uses four forecast versions:
-
-| Version | Meaning |
-|---|---|
-| **V0** | Analytical forecast |
-| **V1** | Commercial forecast |
-| **V2** | Consensus forecast |
-| **V3** | Approved forecast |
-
-| Version | First 12 months | 18 months |
-|---|---:|---:|
-| V0 | **≈ 27,480** | **≈ 44,919** |
-| V1 | **≈ 30,476** | **≈ 49,816** |
-| V3 | **≈ 30,228** | **≈ 49,411** |
-
-**V3 remains an approved unconstrained demand plan.** It is not a supply-constrained forecast.
-
----
-
-## 8. Turn the approved forecast into an initial buy
-
-| Buy component | Units |
-|---|---:|
-| V3 approved 13-week demand | **≈ 7,577** |
-| Launch uncertainty buffer | **9%** |
-| Frozen initial buy | **≈ 8,259** |
-| Flex reserve | **≈ 991** |
-
-### Initial channel allocation
-
-| Channel | Units |
-|---|---:|
-| ECOM | **≈ 3,271** |
-| RETAIL | **≈ 2,544** |
-| WHOLESALE | **≈ 1,454** |
-| Flex reserve | **≈ 991** |
-
-Supply assumptions such as lead time and chase capacity are synthetic planning assumptions used to demonstrate the workflow.
-
----
-
-## 9. Let launch evidence change the plan
-
-The launch path is a **synthetic seeded simulation** used to demonstrate the planning loop.
-
-| Launch outcome | Result |
-|---|---:|
-| Observed sales | **≈ 6,650 units** |
-| Evaluation-only latent demand | **≈ 6,809 units** |
-| Launch fill | **≈ 97.7%** |
-
-### Reforecast progression
-
-| Checkpoint | Reforecast |
-|---|---:|
-| Original V3 | **7,577** |
-| W1 | **7,465** |
-| W2 | **7,310** |
-| W4 | **7,030** |
-| W8 | **6,943** |
-| W13 | **6,650** |
-
-As launch evidence accumulates, actual performance receives more weight and the analog prior receives less.
-
-Every frozen checkpoint remained **HOLD**. The planning rules did not force a chase, cut, or reallocation.
-
----
-
-## 10. Measure Forecast Value Add
-
-FVA asks:
-
-**Did each planning intervention improve forecast accuracy?**
-
-| Version | WAPE |
-|---|---:|
-| V0 Analytical | **5.66%** |
-| V1 Commercial | **12.58%** |
-| V2 Consensus | **11.81%** |
-| V3 Approved | **11.81%** |
-
-| Transition | FVA |
-|---|---:|
-| V0 to V1 | **-6.92 pp** |
-| V1 to V2 | **+0.77 pp** |
-| V2 to V3 | **0.00 pp** |
-
-> **Important caveat:** the synthetic launch generator was centered on the V0 analytical baseline. V0 outperforming later versions on this seeded path is therefore an illustrative governance result, not independent evidence that commercial input is harmful.
-
----
-
-## 11. Capture channel-allocation learning
-
-Observed ECOM mix finished around **49.2%** versus the planned **45%**.
-
-At the same time:
-
-- ECOM lost demand was approximately **159 units**
-- flex reserve remained approximately **991 units**
-- the historical reallocation trigger was **8 percentage points**
-
-This surfaced an important distinction:
-
-> **Total supply sufficiency and channel allocation are different problems.**
-
-Inventory remained available while ECOM stocked out. The project therefore surfaced a channel-allocation and policy-timing issue.
-
-The later threshold analysis is counterfactual. It does not claim that another threshold is optimal.
-
----
-
-## 12. Roll the forecast forward
-
-### Cycle 01
-
-- As of **2026-08-24**
-- Forecast window: **Sep 2026 to Feb 2028**
-
-### Cycle 02
-
-- As of **2026-09-28**
-- Uses only the first four weeks of launch evidence
-- Forecast window: **Oct 2026 to Mar 2028**
-- September becomes actualized
-- March 2028 becomes the new far-horizon month
-
-Across the **17 like-for-like overlapping months**, Cycle 02 is approximately **3.05% lower** than Cycle 01.
-
----
-
-## 13. Hand off the product through its lifecycle
-
-| Lifecycle stage | History |
-|---|---|
-| COLD_START | 0 weeks |
-| **EARLY_LAUNCH** | **1 to 13 weeks** |
-| MATURING_LAUNCH | 14 to 51 weeks |
-| SEASONAL_HISTORY_AVAILABLE | 52+ clean weeks |
-| MATURE_MODEL_ELIGIBLE | 104+ clean weeks plus data-quality gates |
-
-Current status: **EARLY_LAUNCH**
-
-Current forecasting method: **Analog + actual-evidence blend**
-
-No ETS or SARIMA model is fitted to HIS-001 yet.
-
----
-
-# Streamlit Decision Product
-
-DemandIQ is implemented as a six-page planning workspace:
-
-1. **Executive Command Center**
-2. **Demand Outlook**
-3. **Service & Inventory Risk**
-4. **Planner Decision Queue**
-5. **Forecast & Governance**
-6. **New Product Launch Planning**
-
-The launch page connects:
-
-```text
-Analog selection
-→ Cold-start V0
-→ V1 / V2 / V3 consensus
-→ Initial buy
-→ Launch execution
-→ Reforecast
-→ FVA
-→ Cycle 02
-→ Lifecycle handoff
-```
-
----
-
-# Data and Governance
-
-| Class | Examples |
-|---|---|
-| **PUBLIC** | Historical weather observations |
-| **SYNTHETIC** | Demand truth, inventory constraints, planning policies, supply assumptions, launch actuals |
-| **DERIVED** | Reconstructed demand, forecasts, WAPE, Bias, FVA, fill rate, WOS, risk tiers, rolling forecast updates |
-
-### Explicitly excluded from mature forecast features
-
-- `true_demand_units`
-- `lost_demand_units`
-- `audit_hidden_*`
-- `weather_effect_pct`
-- `weather_factor`
-- generator-only spike, shock, and noise variables
-
-### Launch hidden truth
-
-The seeded launch contains a latent synthetic demand series for evaluation. It is:
-
-- evaluation-only
-- hidden from the operational planner
-- excluded from operational KPIs
-- excluded from reforecast decisions
-
----
-
-# Limitations
-
-- DemandIQ is a portfolio simulation, not a production planning system
-- Launch actuals follow one synthetic seeded path
-- Supplier constraints and execution feasibility are simplified
-- Weather scenario caps are planning assumptions, not estimated causal elasticities
-- Economics are planning exposure proxies, not accounting profit
-- FVA is affected by the V0-centered launch simulation design
-- HIS-001 has only 13 observed launch weeks and is not mature-model eligible
-- No live enterprise planning-platform integration is implemented
-
----
-
-# Repository Structure
-
-```text
-DemandIQ/
-├── 01_assumptions/
-├── 02_data/
-├── 03_model_evidence/
-├── 04_scripts/
-├── 05_outputs/
-│   ├── forecasts/
-│   ├── ibp_decisions/
-│   ├── decision_layer/
-│   ├── launch_step7b/
-│   ├── launch_step7c/
-│   ├── launch_step7d/
-│   ├── launch_step7e/
-│   └── launch_step7f/
-├── 06_docs/
-│   └── DemandIQ_Final_Portfolio_Case_Study.pdf
-├── 07_streamlit_app/
-│   ├── app.py
-│   └── requirements.txt
-├── 08_assets/
-│   └── screenshots/
-├── DemandIQ_Case_Study.pdf
-└── README.md
-```
-
----
-
-# Run Locally
+## Run it
 
 ```bash
-cd 07_streamlit_app
-python -m pip install -r requirements.txt
-python -m streamlit run app.py
+python -m pip install pandas numpy matplotlib
+python 04_scripts/step8/step8_peak_diagnosis.py   # rebuilds every Step 8 number from committed files, about 3 s
+
+python -m pip install -r 07_streamlit_app/requirements.txt
+python -m streamlit run 07_streamlit_app/app.py    # original planning app (summer S&OE view)
 ```
 
-Then open:
+Steps 3–7 were run from a local working folder, and their committed outputs are the evidence. Step 8 runs straight from the repository. A one-command rebuild of Steps 3–7 is on the roadmap.
 
-`http://localhost:8501`
+## Repository map
 
----
+| Folder | Contents |
+| --- | --- |
+| `01_assumptions/` | Assumption register and generator parameters |
+| `02_data/` | Simulated history and public weather |
+| `03_model_evidence/` | Reconstruction and backtest evidence |
+| `04_scripts/` | Pipeline, Steps 4–8 |
+| `05_outputs/` | Forecasts, decision layer, launch, and `peak_season_diagnosis/` (Step 8) |
+| `06_docs/` | Decision page, brief, technical appendix, step decision records |
+| `07_streamlit_app/` | Six-page planning app |
+| `08_assets/` | Charts and app screenshots |
 
-# Skills Demonstrated
+## Technical appendix
 
-**Forecasting**
-- demand reconstruction
-- time-series forecasting
-- expanding-window backtesting
-- forecast accuracy and bias
-- weather scenario planning
-
-**Demand Planning and S&OE**
-- 13-week planning
-- inventory and service-risk analysis
-- exception management
-- planner decision queues
-- detection separated from execution authorization
-
-**IBP and New Product Planning**
-- 18-month rolling forecasts
-- analog-led cold-start forecasting
-- forecast-version governance
-- consensus planning
-- initial-buy planning
-- channel allocation
-- launch sell-through
-- reforecasting
-- Forecast Value Add
-- lifecycle handoff
-
-**Tools**
-- Python
-- pandas
-- statsmodels
-- Plotly
-- Streamlit
-- Git / GitHub
-
----
-
-## Planning concepts demonstrated
-
-DemandIQ demonstrates concepts commonly used in enterprise planning environments:
-
-- planning hierarchies
-- forecast versions
-- overrides and consensus
-- scenario planning
-- rolling horizons
-- exception management
-- approval and governance workflows
-
-This project demonstrates the planning concepts themselves. It does not claim hands-on experience with any specific commercial planning platform.
-
----
-
-*Portfolio simulation using public, synthetic, and derived data. No real company internal planning data was used. Economic values are planning exposure proxies.*
+Method detail, model results, launch steps and the app screenshots are in the [technical appendix](./06_docs/DemandIQ_Technical_Appendix.md), the original README. The step-by-step decision records are in `06_docs/`.
