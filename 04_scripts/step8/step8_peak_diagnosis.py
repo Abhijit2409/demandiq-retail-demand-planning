@@ -720,12 +720,21 @@ def chart_fill_trend(trend: pd.DataFrame, path: Path) -> None:
     plt.close(fig)
 
 
+MONTH_ORDER = [7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6]
+WINDOW_MONTHS = (7, 8, 9)  # the published 13-week S&OE window, Jun 29 - Sep 21
+
+
+def lost_share_by_month(history: pd.DataFrame) -> pd.Series:
+    """Share of simulated lost units by calendar month, plan years PY2022-PY2026 (truth)."""
+    lost = history.groupby("month").lost_demand_units.sum().reindex(MONTH_ORDER)
+    return lost / lost.sum() * 100
+
+
 def chart_lost_by_month(history: pd.DataFrame, path: Path) -> None:
-    order = [7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6]
+    order = MONTH_ORDER
     names = ["Jul", "Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun"]
-    lost = history.groupby("month").lost_demand_units.sum().reindex(order)
-    share = lost / lost.sum() * 100
-    window_share = share.loc[[7, 8, 9]].sum()
+    share = lost_share_by_month(history)
+    window_share = share.loc[list(WINDOW_MONTHS)].sum()
     peak_share = share.loc[list(PEAK_MONTHS)].sum()
     fig, ax = plt.subplots(figsize=(8, 4.2), dpi=160, facecolor=SURFACE)
     _style(ax)
@@ -789,7 +798,7 @@ def _date(value: pd.Timestamp) -> str:
 
 def headline_metrics(trend, basis, split, quartiles, chase_years, chase_timing, concentration,
                      windows, counterfactuals, queue, launch, recommendation, feasibility,
-                     validation) -> pd.DataFrame:
+                     validation, monthly_lost_share) -> pd.DataFrame:
     """Every headline number, with its evidence basis and its role.
 
     DIAGNOSIS sizes and explains the problem; RECOMMENDATION is computed from
@@ -838,6 +847,9 @@ def headline_metrics(trend, basis, split, quartiles, chase_years, chase_timing, 
         ("Lost revenue, PY2026", t.loc[LATEST_PY, "lost_revenue_cad"], "CAD", TRUTH),
         ("Lost revenue as share of net revenue, PY2026", t.loc[LATEST_PY, "lost_revenue_share_of_net_revenue"] * 100, "%", TRUTH),
         ("Share of PY2026 lost units in Dec-Feb", t.loc[LATEST_PY, "peak_share_of_lost_units"] * 100, "%", TRUTH),
+        ("Share of lost units in Dec-Feb, PY2022-PY2026", monthly_lost_share.loc[list(PEAK_MONTHS)].sum(), "%", TRUTH),
+        ("Share of lost units in Jul-Sep (13-week S&OE window), PY2022-PY2026",
+         monthly_lost_share.loc[list(WINDOW_MONTHS)].sum(), "%", TRUTH),
         ("Buy basis vs prior-year true demand, PY2023", b.loc["PY2023", "basis_gap_vs_prior_true_pct"], "%", TRUTH),
         ("Buy basis vs prior-year true demand, PY2026", b.loc[LATEST_PY, "basis_gap_vs_prior_true_pct"], "%", TRUTH),
         ("Buy basis vs prior-year reconstructed demand, PY2026", b.loc[LATEST_PY, "basis_gap_vs_prior_reconstructed_pct"], "%", PLANNER),
@@ -896,7 +908,7 @@ def main() -> None:
     launch = launch_rule()
     metrics = headline_metrics(trend, basis, split, quartiles, chase_years, chase_timing, concentration,
                                windows, counterfactuals, queue, launch, recommendation, feasibility,
-                               validation)
+                               validation, lost_share_by_month(history))
 
     outputs = {
         "DemandIQ_Step8_Fill_Trend.csv": trend,

@@ -137,6 +137,9 @@ STEPS: tuple[Step, ...] = (
     Step("step8b", "Step 8B reconcile Step 5 with Step 8", "exact",
          "04_scripts/step8/step8b_step5_reconciliation.py",
          outputs=("05_outputs/peak_season_diagnosis/DemandIQ_Step8B_*.csv",)),
+    Step("brief", "Step 8C two-page brief (PDF), built and number-checked", "exact",
+         "04_scripts/step8/step8c_build_brief.py",
+         outputs=("06_docs/DemandIQ_Peak_Season_Brief.pdf",)),
 )
 
 VOLATILE_SUFFIXES = {".xlsx", ".pdf"}  # build-time metadata in the container
