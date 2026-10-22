@@ -1,4 +1,4 @@
-> **Technical appendix.** This is the original DemandIQ README, kept for the method detail. Start with the [README](../README.md) and the [Step 8 decision page](./DemandIQ_Step8_Peak_Season_Decisions.md). Step 8 supersedes the 13-week escalation list shown here (3 ESCALATE): with last year's replenishment in the supply view, and flags tested across forecast error, it becomes 0 ESCALATE, 1 WATCH, 5 PROTECT, 3 no action.
+> **Technical appendix.** This is the original DemandIQ README, kept for the method detail. Start with the [README](../README.md) and the [Step 8 decision page](./DemandIQ_Step8_Peak_Season_Decisions.md). The 13-week escalation list shown here (3 ESCALATE, 6 PROTECT) is the v1 plan, which counted only the seasonal drops as supply. Step 5 now also counts the 6,512 units of replenishment in transit at the plan date, and escalates none: 0 ESCALATE, 7 PROTECT, 2 HOLD. Step 8's error-band check agrees on 7 of 9 series. The v1 outputs are kept in `05_outputs/v1_published_plan/`, and the app screenshots below show v1.
 
 # DemandIQ
 

@@ -23,7 +23,7 @@ Each step's log is written to `build/logs/`.
 
 Verified in a clean virtual environment with `requirements-dev.txt`:
 
-- 19 steps rebuild in about 30 seconds (18 analysis steps plus the brief).
+- 19 steps rebuild in about 25 seconds (18 analysis steps plus the brief).
 - Every output matches the committed files.
 
 CI runs the same check on every push (`.github/workflows/ci.yml`).
@@ -76,7 +76,7 @@ The statsmodels optimisers behind ETS and SARIMA don't reproduce committed fits 
 | Refit | Drift from the committed outputs |
 | --- | --- |
 | ETS backtest | Pooled WAPE changes by at most 0.29 pp |
-| SARIMA screen and targeted | Pooled WAPE changes by at most 0.007 pp |
+| SARIMA screen and targeted | Pooled WAPE changes by at most 0.001 pp |
 | Champion selection | 1 of 9 changes: IMH-001 RETAIL moves from HW_Damped_Mul (8.485%) to HW_Damped_Add (8.317%). In the committed backtest the two were 0.007 pp apart. |
 | Step 4D forecast | Max 1.27 units a week (APS-001 WHOLESALE); 13-week total +8.7 units (+0.02%) |
 | Step 5 on the refitted forecast | All 9 calls unchanged; ending cover moves by at most 0.07 weeks |
@@ -90,7 +90,7 @@ Step 4D keeps its champions frozen in code, so a refit never switches a model si
 I looked in three places for the missing code:
 
 - **GitHub history.** Every commit on `main` and on the PR branches. Neither the generator nor the reconstruction code was ever committed.
-- **The original working folder (`D:\Downloads\DemandIQ`).** `04_scripts/step3/` and `04_scripts/step4a/` exist but are empty. Its two local commits never contained either script.
+- **The original working folder (`D:\Downloads\DemandIQ`).** Its `step3` and `step4a` script folders exist but are empty. Its two local commits never contained either script.
 - **The project notes.** They list the Step 3 and Step 4A output files but name no script.
 
 The code is genuinely missing.
@@ -106,9 +106,9 @@ The workbook documents the generator's rules (seasonal buy, replenishment, chase
 `step4b_0` rebuilds the 260-week × 9-series reconstructed-demand series that Step 4B and 4D read. It uses the committed baseline backtest:
 
 - **Weeks 2022-07-04 to 2026-06-22 (1,872 series-weeks).** Exact. They come from the backtest actuals and the lag-52 forecasts, and every week covered by both agrees.
-- **Weeks 2021-07-05 to 2022-06-27 (468 series-weeks).** Recovered from the two-year moving-average forecasts.
-  - 345 of these weeks have no stockout-censored rows, and the script anchors them on summed sales.
-  - 388 of the 468 are pinned only to one of two adjacent floats.
+- **Weeks 2021-07-05 to 2022-06-27 (468 series-weeks).** Recovered from the two-year moving-average forecasts, which constrain each value to a few adjacent floats.
+  - **345 weeks with no stockout-censored rows.** The script anchors them on summed sales. 343 match exactly; the other 2 sit one float step away.
+  - **123 censored weeks.** 42 are pinned uniquely. The other 81 are known to within 2–4 adjacent floats, a few parts in 10¹⁶.
 
 The script checks three things:
 
@@ -118,11 +118,15 @@ The script checks three things:
 
 pandas' default CSV parser is off by one float step for a few values. The script reads the evidence with `float_precision="round_trip"` and writes text that the default parser maps back to the exact floats.
 
-The row-level output (SKU × region × channel × week) can't be recovered this way. Steps 4B.1, 4C.1 and 4C.3 need it. Their outputs are committed, or are superseded by 4B.0.
+The row-level output (SKU × region × channel × week) can't be recovered this way. Steps 4B.1, 4C.1 and 4C.3 need it. Their status:
+
+- 4B.1's output is superseded by 4B.0.
+- 4C.1 is an audit that writes no file.
+- 4C.3's output (the weather overlay) is committed and feeds 4C.4.
 
 **Recovery path for Step 4A:** re-implement the seasonal-profile imputation and accept it only when it hits these committed targets:
 
-1. **The recovered series.** All 2,340 series-weeks. Uncensored weeks must match exactly. Censored weeks must match to the float, or to one of the two adjacent floats in the first year.
+1. **The recovered series.** All 2,340 series-weeks. They must match exactly, or for the 83 first-year weeks noted above, to within their few adjacent floats.
 2. **335 single-censored-row weeks.** In these series-weeks exactly one region-row was censored, so that row's imputed value is pinned exactly: the series value minus the other regions' sales. Every one is at least the observed sales, which is consistent with `max(observed, profile estimate)`.
 3. **The method comparison** (`03_model_evidence/step4a_reconstruction/DemandIQ_Step4A_Method_Comparison.csv`):
 
@@ -134,7 +138,7 @@ The row-level output (SKU × region × channel × week) can't be recovered this 
 
    Also WAPE 26.08%, bias −2.61%, recovery 95.68%, plus the nine per-series totals.
 
-I tried the obvious variants and none reproduces target 2: same-week means and medians over other years, with and without a plan-year level factor, keyed by plan week or ISO week. The best had a mean absolute error of about 8 units. The original method used something these variants don't, so it needs its code or a closer description. If the original script turns up, add it as `04_scripts/step4a/` and remove `step4a` from the blocked list in `run_pipeline.py`. The targets above then become its test.
+I tried the obvious variants and none reproduces target 2: same-week means and medians over other years, with and without a plan-year level factor, keyed by plan week or ISO week. The best had a mean absolute error of about 8 units. The original method used something these variants don't, so it needs its code or a closer description. If the original script turns up, add it in a new `step4a` folder under `04_scripts/` and remove `step4a` from the blocked list in `run_pipeline.py`. The targets above then become its test.
 
 ## Environment notes
 

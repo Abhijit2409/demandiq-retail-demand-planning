@@ -1,6 +1,6 @@
 # DemandIQ: Peak-Season Demand Planning for Premium Outerwear
 
-**Bottom line.** Peak-season (Dec–Feb) fill fell from 86% to 78% in four plan years. The cause is that every buy starts from last year's sales, and stockouts suppress exactly the peak weeks. Evaluated at the published plan's as-of date, **June 29, 2026**, planning the coming peak on reconstructed demand meant an indicative **10,339 more units (+21%)**: 4,574 shipped before the peak instead of in spring, plus 5,613 new. The orders were due by **Jun 29 – Jul 13**, the first two weeks of the 13-week plan, which the published version spent on summer exceptions.
+**Bottom line.** Peak-season (Dec–Feb) fill fell from 86% to 78% in four plan years. The cause is that every buy starts from last year's sales, and stockouts suppress exactly the peak weeks. Evaluated at the published plan's as-of date, **June 29, 2026**, planning the coming peak on reconstructed demand meant an indicative **10,339 more units (+22% on last peak's Dec–Feb sales)**: 4,574 shipped before the peak instead of in spring, plus 5,613 new. The orders were due by **Jun 29 – Jul 13**, the first two weeks of the 13-week plan, which the published version spent on summer exceptions.
 
 > **Retrospective decision case.** Every order and chase deadline in this README (Jun 29 – Oct 5, 2026) is evaluated at the June 29 planning date, and all have since passed. They show what the planner should have decided then, not actions still open.
 
@@ -8,7 +8,7 @@
 >
 > Every number is labelled by evidence. **Observable** numbers use only what a planner can see: sales, in-stock days, receipts, inventory and reconstructed demand. **Simulation truth** numbers use hidden generator fields, and appear only to size the problem and to validate the recommendation.
 
-**Start here:** [Decision page](./06_docs/DemandIQ_Step8_Peak_Season_Decisions.md) · [Two-page brief (PDF)](./06_docs/DemandIQ_Peak_Season_Brief.pdf) · [Diagnosis script](./04_scripts/step8/step8_peak_diagnosis.py) · [Technical appendix](./06_docs/DemandIQ_Technical_Appendix.md)
+**Start here:** [Decision page](./06_docs/DemandIQ_Step8_Peak_Season_Decisions.md) · [Two-page brief (PDF)](./06_docs/DemandIQ_Peak_Season_Brief.pdf) · [Diagnosis script](./04_scripts/step8/step8_peak_diagnosis.py) · [Reproducibility](./06_docs/DemandIQ_Reproducibility.md) · [Technical appendix](./06_docs/DemandIQ_Technical_Appendix.md)
 
 ---
 
@@ -51,8 +51,10 @@
 - **Therefore:** start each S&OP with the top 20 of 81 cells by stockout days.
 
 **4. Escalate only shortfalls that survive forecast error.**
-- **I found:** the original 13-week list escalated 3 series. All three disappear once last year's replenishment is counted as supply.
-- **Therefore:** the corrected list is **0 ESCALATE, 1 WATCH, 5 PROTECT, 3 no action**, with each row tested across the champion model's error band.
+- **I found:** the original 13-week plan counted only the seasonal drops as supply and escalated 3 series. It left out 6,512 units of replenishment already in transit at the plan date, all landing by Jul 13 *(observable)*.
+- **Therefore:** the Step 5 engine now counts that replenishment and escalates none: **0 ESCALATE, 7 PROTECT, 2 HOLD**.
+- **Check:** Step 8's error-band queue (0 ESCALATE, 1 WATCH, 5 PROTECT, 3 no action) agrees on 7 of 9 series. The two differences come from tests only one of them runs: the forecast-error band (APS-001 Wholesale on watch) and the severe-weather case (IMH-001 Retail protected).
+- **Robustness:** no escalation returns when the in-transit estimate is stressed by its worst backtest error (±30%).
 
 **5. Release launch reserve on a channel-mix rule.**
 - **I found:** the launch bought 21% more than latent demand, yet ECOM lost 159 units while a 991-unit reserve sat idle.
@@ -112,7 +114,7 @@ In the original summer window, weather scenarios and stockout correction change 
 
 - **Demand reconstruction.** Seasonal-profile imputation on stockout-censored weeks:
     - censored-row bias −2.6%, against −21.0% for a naive gross-up;
-    - recovers 75% of the true Dec–Feb gap, so the +21% buy change is conservative;
+    - recovers 75% of the true Dec–Feb gap, so the +21% uplift, and the buy change built on it, is conservative;
     - recovery varies by year (104%, 101% and 79% for PY2024–PY2026), because method selection used simulation truth. With real data, select by masking known in-stock weeks.
 - **Backtest.** 12 expanding folds (104-week minimum, 13-week horizon) across 9 SKU × channel series:
     - ETS wins 8 of 9; no SARIMA model was selected;
@@ -145,6 +147,7 @@ The recommendation uses observable data only; truth is used here to score it.
 | 92% service target; 2.5-week safety stock; 8-week excess threshold | Policy assumptions, not derived from economics | Yes, for which series are flagged |
 | 50% over-buy guardrail | Policy assumption, to set with finance | Yes, for CTS-001 ECOM |
 | Early shipping, order-change windows, supplier capacity, MOQ | Not modelled | Yes: the +10,339 scenario is indicative until confirmed |
+| In-transit replenishment repeats last year's pattern | Backtest series error 15–30%; all of it lands in weeks 1–3 | No: no escalation returns at ±30%. Yes for protect vs hold in 3 series |
 | Lost demand is fully lost (no substitution) | Simplification | Lost revenue is an upper bound |
 | Wholesale modelled as weekly demand | Simplification; real wholesale is largely pre-booked | Wholesale numbers are the least reliable |
 | Style level only; no sizes or colours | Scope | Buys are set by style, not style-colour-size |
@@ -175,11 +178,12 @@ Step 4B.0 recovers the reconstructed-demand series exactly from committed backte
 | `01_assumptions/` | Assumption register and generator parameters |
 | `02_data/` | Simulated history and public weather |
 | `03_model_evidence/` | Reconstruction and backtest evidence |
-| `04_scripts/` | Pipeline, Steps 4–8 |
-| `05_outputs/` | Forecasts, decision layer, launch, and `peak_season_diagnosis/` (Step 8) |
-| `06_docs/` | Decision page, brief, portfolio copy, technical appendix, step decision records |
+| `04_scripts/` | Pipeline, Steps 4–8, and `run_pipeline.py` (rebuild in dependency order) |
+| `05_outputs/` | Forecasts, decision layer, launch, `peak_season_diagnosis/` (Step 8), and `v1_published_plan/` (the superseded seasonal-only plan, kept for audit) |
+| `06_docs/` | Decision page, brief, reproducibility, portfolio copy, technical appendix, step decision records |
 | `07_streamlit_app/` | Six-page planning app |
-| `08_assets/` | Charts and app screenshots |
+| `08_assets/` | Charts, bundled fonts (OFL) and app screenshots |
+| `tests/`, `.github/workflows/` | Focused checks and CI: clean rebuild, then tests |
 
 ## Technical appendix
 
