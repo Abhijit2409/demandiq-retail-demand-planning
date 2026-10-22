@@ -57,8 +57,9 @@ POLICY = {
 
 MIN_FONT_PT = 7.5  # readability floor checked by verify(); not printed
 PAGE_HEIGHT_PT, BOTTOM_MARGIN_PT = 792.0, 0.55 * 72  # Letter, @page margin
-HEADROOM_PT = 36.0  # free space each page must keep above the bottom margin, so
-                    # small rendering differences between machines cannot add a page
+HEADROOM_PT = 24.0  # free space each page must keep above the bottom margin. CI's
+                    # Linux runner lays page 1 out about 15 pt longer than a local build
+                    # with the same Chromium and fonts; this keeps both on 2 pages.
 NUMBER = re.compile(r"(?<![A-Za-z0-9_.])\d[\d,]*(?:\.\d+)?(?![\d_])")
 
 
@@ -196,7 +197,7 @@ h2 {{ font-size: 12pt; margin: 9px 0 3px; padding-bottom: 2px; border-bottom: 1p
 .kpi b {{ display: block; font-size: 15pt; line-height: 1.1; }}
 .kpi span {{ color: #52514e; font-size: 8.6pt; }}
 .kpi.hot {{ border-color: #2a78d6; background: #f2f7fd; }}
-img {{ width: 100%; border: 1px solid #e1e0d9; border-radius: 6px; }}
+img {{ display: block; width: 94%; margin: 0 auto; border: 1px solid #e1e0d9; border-radius: 6px; }}
 ul {{ margin: 3px 0 0 0; padding-left: 16px; }} li {{ margin: 0 0 3px; }}
 .tag {{ font-size: 7.6pt; color: #52514e; border: 1px solid #c3c2b7; border-radius: 3px; padding: 0 4px; margin-left: 4px; white-space: nowrap; }}
 table {{ width: 100%; border-collapse: collapse; font-size: 9pt; margin-top: 4px; }}
