@@ -1,0 +1,5 @@
+peak_loss_quartile,cell_years,mean_peak_lost_units,chase_trigger_rate,median_first_trigger_plan_week,mean_chase_units,median_early_shipped_vs_plan,basis
+Q1 lowest loss,102,0.0,0.7549,11.0,93.1225,0.9705,"quartiles on SIMULATION_TRUTH; trigger, chase and shipments are PLANNER_VIEW"
+Q2,101,36.5331,0.7723,13.0,66.6456,0.9507,"quartiles on SIMULATION_TRUTH; trigger, chase and shipments are PLANNER_VIEW"
+Q3,101,127.189,0.7426,11.0,86.3819,0.9627,"quartiles on SIMULATION_TRUTH; trigger, chase and shipments are PLANNER_VIEW"
+Q4 highest loss,101,328.0351,0.7723,12.0,118.605,1.0193,"quartiles on SIMULATION_TRUTH; trigger, chase and shipments are PLANNER_VIEW"

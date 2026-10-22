@@ -1,0 +1,6 @@
+plan_year,basis_units,basis_type,mean_growth_assumption,committed_buy_units,true_units,sold_units,prior_year_sold_units,prior_year_true_units,prior_year_reconstructed_units,basis_gap_vs_prior_true_pct,basis_gap_vs_prior_reconstructed_pct,committed_buy_vs_true_demand,true_demand_growth_pct,basis
+PY2022,144559.9969,STARTUP_STRUCTURAL_ANNUAL_EXPECTATION,0.0462,148028.8802,145199,137960.2662,,,,,,1.0195,,SIMULATION_TRUTH for true units; PLANNER_VIEW for reconstructed units
+PY2023,137960.2662,PRIOR_PLAN_YEAR_OBSERVED_SALES,0.0538,145186.8094,155241,144475.1971,137960.2662,145199.0,,-4.9854,,0.9352,6.916,SIMULATION_TRUTH for true units; PLANNER_VIEW for reconstructed units
+PY2024,144475.1971,PRIOR_PLAN_YEAR_OBSERVED_SALES,0.0445,150326.8949,156973,145022.7484,144475.1971,155241.0,,-6.9349,,0.9577,1.1157,SIMULATION_TRUTH for true units; PLANNER_VIEW for reconstructed units
+PY2025,145022.7484,PRIOR_PLAN_YEAR_OBSERVED_SALES,0.0389,150466.6376,171053,155758.2717,145022.7484,156973.0,157438.4367,-7.6129,-7.8861,0.8796,8.9697,SIMULATION_TRUTH for true units; PLANNER_VIEW for reconstructed units
+PY2026,155758.2717,PRIOR_PLAN_YEAR_OBSERVED_SALES,0.0656,166942.1082,181126,165335.3947,155758.2717,171053.0,171201.6587,-8.9415,-9.0206,0.9217,5.8888,SIMULATION_TRUTH for true units; PLANNER_VIEW for reconstructed units

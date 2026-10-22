@@ -1,0 +1,64 @@
+sku_id,channel_id,demand_13w_units,fill_13w,worst_weekly_fill,weeks_below_target,ending_cover_weeks,tier,case
+APS-001,ECOM,2333.223,1.0,1.0,0,1.2501,P2 PROTECT,Published: champion ETS forecast
+APS-001,RETAIL,1591.495,1.0,1.0,0,0.2812,P2 PROTECT,Published: champion ETS forecast
+APS-001,WHOLESALE,1309.511,0.9354,0.3315,2,0.0,P1 ESCALATE,Published: champion ETS forecast
+CTS-001,ECOM,6535.567,1.0,1.0,0,0.6345,P2 PROTECT,Published: champion ETS forecast
+CTS-001,RETAIL,4558.386,0.9557,0.6538,2,0.0,P1 ESCALATE,Published: champion ETS forecast
+CTS-001,WHOLESALE,3602.838,1.0,1.0,0,0.9108,P2 PROTECT,Published: champion ETS forecast
+IMH-001,ECOM,7362.241,1.0,1.0,0,0.5404,P2 PROTECT,Published: champion ETS forecast
+IMH-001,RETAIL,5049.376,1.0,1.0,0,0.5983,P2 PROTECT,Published: champion ETS forecast
+IMH-001,WHOLESALE,4092.023,0.9606,0.7406,2,0.0,P1 ESCALATE,Published: champion ETS forecast
+APS-001,ECOM,2305.283,1.0,1.0,0,1.3813,P2 PROTECT,Mild weather scenario
+APS-001,RETAIL,1572.43,1.0,1.0,0,0.4009,P2 PROTECT,Mild weather scenario
+APS-001,WHOLESALE,1293.332,0.9471,0.4268,2,0.0,P1 ESCALATE,Mild weather scenario
+CTS-001,ECOM,6475.859,1.0,1.0,0,0.7442,P2 PROTECT,Mild weather scenario
+CTS-001,RETAIL,4516.292,0.9647,0.7273,2,0.0,P1 ESCALATE,Mild weather scenario
+CTS-001,WHOLESALE,3570.232,1.0,1.0,0,1.0155,P2 PROTECT,Mild weather scenario
+IMH-001,ECOM,7272.629,1.0,1.0,0,0.6717,P2 PROTECT,Mild weather scenario
+IMH-001,RETAIL,4988.665,1.0,1.0,0,0.7293,P2 PROTECT,Mild weather scenario
+IMH-001,WHOLESALE,4041.378,0.9727,0.8136,2,0.0,P1 ESCALATE,Mild weather scenario
+APS-001,ECOM,2355.215,1.0,1.0,0,1.1481,P2 PROTECT,Severe weather scenario
+APS-001,RETAIL,1606.158,1.0,1.0,0,0.191,P2 PROTECT,Severe weather scenario
+APS-001,WHOLESALE,1321.767,0.9267,0.2656,2,0.0,P1 ESCALATE,Severe weather scenario
+CTS-001,ECOM,6571.176,1.0,1.0,0,0.5694,P2 PROTECT,Severe weather scenario
+CTS-001,RETAIL,4583.317,0.9506,0.6169,2,0.0,P1 ESCALATE,Severe weather scenario
+CTS-001,WHOLESALE,3622.588,1.0,1.0,0,0.8472,P2 PROTECT,Severe weather scenario
+IMH-001,ECOM,7413.792,1.0,1.0,0,0.4658,P2 PROTECT,Severe weather scenario
+IMH-001,RETAIL,5085.68,1.0,1.0,0,0.5204,P2 PROTECT,Severe weather scenario
+IMH-001,WHOLESALE,4117.554,0.9547,0.6981,2,0.0,P1 ESCALATE,Severe weather scenario
+APS-001,ECOM,2218.0,1.0,1.0,0,1.8227,P2 PROTECT,Seasonal naive on reconstructed demand
+APS-001,RETAIL,1516.0,1.0,1.0,0,0.7833,P2 PROTECT,Seasonal naive on reconstructed demand
+APS-001,WHOLESALE,1299.4154,0.9426,0.2278,1,0.0,P2 PROTECT,Seasonal naive on reconstructed demand
+CTS-001,ECOM,6207.8974,1.0,1.0,0,1.2301,P2 PROTECT,Seasonal naive on reconstructed demand
+CTS-001,RETAIL,4443.0,0.9806,0.8025,1,0.0,P2 PROTECT,Seasonal naive on reconstructed demand
+CTS-001,WHOLESALE,3438.1369,1.0,1.0,0,1.4659,P2 PROTECT,Seasonal naive on reconstructed demand
+IMH-001,ECOM,6764.0,1.0,1.0,0,1.5118,P2 PROTECT,Seasonal naive on reconstructed demand
+IMH-001,RETAIL,4938.25,1.0,1.0,0,0.841,P2 PROTECT,Seasonal naive on reconstructed demand
+IMH-001,WHOLESALE,3562.8866,1.0,1.0,0,1.0304,P2 PROTECT,Seasonal naive on reconstructed demand
+APS-001,ECOM,2218.0,1.0,1.0,0,1.8227,P2 PROTECT,Seasonal naive on raw sales (no stockout correction)
+APS-001,RETAIL,1516.0,1.0,1.0,0,0.7833,P2 PROTECT,Seasonal naive on raw sales (no stockout correction)
+APS-001,WHOLESALE,1285.9776,0.9436,0.2278,1,0.0912,P2 PROTECT,Seasonal naive on raw sales (no stockout correction)
+CTS-001,ECOM,6205.4291,1.0,1.0,0,1.2358,P2 PROTECT,Seasonal naive on raw sales (no stockout correction)
+CTS-001,RETAIL,4443.0,0.9806,0.8025,1,0.0,P2 PROTECT,Seasonal naive on raw sales (no stockout correction)
+CTS-001,WHOLESALE,3348.2783,1.0,1.0,0,1.8332,P2 PROTECT,Seasonal naive on raw sales (no stockout correction)
+IMH-001,ECOM,6764.0,1.0,1.0,0,1.5118,P2 PROTECT,Seasonal naive on raw sales (no stockout correction)
+IMH-001,RETAIL,4938.25,1.0,1.0,0,0.841,P2 PROTECT,Seasonal naive on raw sales (no stockout correction)
+IMH-001,WHOLESALE,3545.0881,1.0,1.0,0,1.0802,P2 PROTECT,Seasonal naive on raw sales (no stockout correction)
+APS-001,ECOM,2137.4951,1.0,1.0,0,2.2124,P2 PROTECT,Seasonal two-year average
+APS-001,RETAIL,1523.5,1.0,1.0,0,0.7254,P2 PROTECT,Seasonal two-year average
+APS-001,WHOLESALE,1365.9577,0.8967,0.0086,2,0.0,P1 ESCALATE,Seasonal two-year average
+CTS-001,ECOM,5944.4487,1.0,1.0,0,1.7942,P2 PROTECT,Seasonal two-year average
+CTS-001,RETAIL,4327.5,1.0,1.0,0,0.0726,P2 PROTECT,Seasonal two-year average
+CTS-001,WHOLESALE,3602.8383,1.0,1.0,0,0.9108,P2 PROTECT,Seasonal two-year average
+IMH-001,ECOM,6546.0,1.0,1.0,0,1.8893,P2 PROTECT,Seasonal two-year average
+IMH-001,RETAIL,4632.9069,1.0,1.0,0,1.5809,P2 PROTECT,Seasonal two-year average
+IMH-001,WHOLESALE,3779.988,1.0,1.0,0,0.3809,P2 PROTECT,Seasonal two-year average
+APS-001,ECOM,2333.223,1.0,1.0,0,2.2388,P2 PROTECT,"Published forecast, last year's replenishment added to supply"
+APS-001,RETAIL,1591.495,1.0,1.0,0,1.6433,P2 PROTECT,"Published forecast, last year's replenishment added to supply"
+APS-001,WHOLESALE,1309.511,1.0,1.0,0,0.7345,P2 PROTECT,"Published forecast, last year's replenishment added to supply"
+CTS-001,ECOM,6535.567,1.0,1.0,0,2.7666,BALANCED,"Published forecast, last year's replenishment added to supply"
+CTS-001,RETAIL,4558.386,1.0,1.0,0,1.7798,P2 PROTECT,"Published forecast, last year's replenishment added to supply"
+CTS-001,WHOLESALE,3602.838,1.0,1.0,0,3.1839,BALANCED,"Published forecast, last year's replenishment added to supply"
+IMH-001,ECOM,7362.241,1.0,1.0,0,2.0588,P2 PROTECT,"Published forecast, last year's replenishment added to supply"
+IMH-001,RETAIL,5049.376,1.0,1.0,0,2.5536,BALANCED,"Published forecast, last year's replenishment added to supply"
+IMH-001,WHOLESALE,4092.023,1.0,1.0,0,1.7494,P2 PROTECT,"Published forecast, last year's replenishment added to supply"
