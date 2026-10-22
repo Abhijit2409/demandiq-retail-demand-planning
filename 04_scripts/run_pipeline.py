@@ -193,8 +193,16 @@ def run(step: Step) -> float:
     if result.returncode != 0:
         tail = log.read_text(encoding="utf-8", errors="replace").splitlines()[-25:]
         print("\n".join(tail))
+        annotate(f"{step.key} failed", tail)
         raise SystemExit(f"FAILED: {step.key} (exit {result.returncode}); full log: {log}")
     return elapsed
+
+
+def annotate(title: str, lines: list[str]) -> None:
+    """Surface a failure as a GitHub Actions annotation (readable in the PR and the API)."""
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        body = "%0A".join(line.replace("%", "%25").replace("\r", "") for line in lines[-20:])
+        print(f"::error title={title}::{body}")
 
 
 def check_outputs(steps: list[Step]) -> list[str]:
@@ -315,6 +323,7 @@ def main() -> None:
         if problems:
             print("\nCHECK FAILED: rebuilt outputs differ from the committed versions")
             print("\n".join(f"  {p}" for p in problems))
+            annotate("Rebuild check failed", problems)
             raise SystemExit(1)
         print("CHECK PASSED: every rebuilt output matches the committed version.")
 

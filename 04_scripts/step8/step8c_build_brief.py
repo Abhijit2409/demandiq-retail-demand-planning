@@ -174,13 +174,15 @@ def series_rows() -> list[list[str]]:
 
 # --------------------------------------------------------------------------- template
 
+# Fonts are embedded as data URIs: Chromium blocks file:// web fonts (CORS),
+# and a unique family name stops a system-installed Carlito from masking that.
 CSS = """
-@font-face {{ font-family: Carlito; src: url('{regular}'); font-weight: 400; font-style: normal; }}
-@font-face {{ font-family: Carlito; src: url('{bold}'); font-weight: 700; font-style: normal; }}
-@font-face {{ font-family: Carlito; src: url('{italic}'); font-weight: 400; font-style: italic; }}
+@font-face {{ font-family: 'DemandIQ Carlito'; src: url('{regular}'); font-weight: 400; font-style: normal; }}
+@font-face {{ font-family: 'DemandIQ Carlito'; src: url('{bold}'); font-weight: 700; font-style: normal; }}
+@font-face {{ font-family: 'DemandIQ Carlito'; src: url('{italic}'); font-weight: 400; font-style: italic; }}
 @page {{ size: Letter; margin: 0.55in 0.6in; }}
 * {{ box-sizing: border-box; }}
-body {{ font-family: Carlito, sans-serif; color: #0b0b0b; font-size: 9.8pt; line-height: 1.3; margin: 0; }}
+body {{ font-family: 'DemandIQ Carlito', sans-serif; color: #0b0b0b; font-size: 9.8pt; line-height: 1.3; margin: 0; }}
 .kicker {{ color: #2a78d6; font-weight: 700; letter-spacing: .08em; font-size: 8.5pt; text-transform: uppercase; }}
 h1 {{ font-size: 20pt; margin: 2px 0 2px; line-height: 1.15; }}
 .sub {{ color: #52514e; font-size: 9.5pt; margin-bottom: 10px; }}
@@ -209,7 +211,9 @@ td {{ border-bottom: 1px solid #ecebe6; padding: 2px 5px; vertical-align: top; }
 def render(f: dict[str, Fact]) -> str:
     v = {k: html.escape(fact.text) for k, fact in f.items()}
     p = {k: html.escape(text) for k, text in POLICY.items()}
-    fonts = {style: (FONT_DIR / f"Carlito-{style.title()}.ttf").as_uri() for style in ("regular", "bold", "italic")}
+    fonts = {style: "data:font/ttf;base64,"
+             + base64.b64encode((FONT_DIR / f"Carlito-{style.title()}.ttf").read_bytes()).decode()
+             for style in ("regular", "bold", "italic")}
     chart = base64.b64encode(CHART_FILE.read_bytes()).decode()
     rows = "".join(
         "<tr>" + "".join(f"<td{' class=r' if 1 <= i <= 4 else ''}>{html.escape(c)}</td>" for i, c in enumerate(row))
@@ -299,6 +303,13 @@ def pdf_text(pdf_path: Path) -> tuple[int, str, float]:
         return len(pdf.pages), " ".join(text.split()), smallest
 
 
+def pdf_fonts(pdf_path: Path) -> set[str]:
+    import pdfplumber
+
+    with pdfplumber.open(pdf_path) as pdf:
+        return {char["fontname"] for page in pdf.pages for char in page.chars}
+
+
 def verify(pdf_path: Path = PDF_FILE) -> list[str]:
     """Problems with the PDF; empty when it passes."""
     derived = facts()
@@ -308,6 +319,9 @@ def verify(pdf_path: Path = PDF_FILE) -> list[str]:
     pages, text, smallest = pdf_text(pdf_path)
     found = set(NUMBER.findall(text))
     problems = []
+    fonts = pdf_fonts(pdf_path)
+    if not fonts or not all("Carlito" in name for name in fonts):
+        problems.append(f"PDF fonts are {sorted(fonts)}; expected only the bundled Carlito")
     if pages != 2:
         problems.append(f"{pages} pages (expected 2)")
     if smallest < MIN_FONT_PT:
