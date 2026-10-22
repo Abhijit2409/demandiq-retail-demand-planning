@@ -56,6 +56,9 @@ POLICY = {
 }
 
 MIN_FONT_PT = 7.5  # readability floor checked by verify(); not printed
+PAGE_HEIGHT_PT, BOTTOM_MARGIN_PT = 792.0, 0.55 * 72  # Letter, @page margin
+HEADROOM_PT = 36.0  # free space each page must keep above the bottom margin, so
+                    # small rendering differences between machines cannot add a page
 NUMBER = re.compile(r"(?<![A-Za-z0-9_.])\d[\d,]*(?:\.\d+)?(?![\d_])")
 
 
@@ -186,23 +189,23 @@ body {{ font-family: 'DemandIQ Carlito', sans-serif; color: #0b0b0b; font-size: 
 .kicker {{ color: #2a78d6; font-weight: 700; letter-spacing: .08em; font-size: 8.5pt; text-transform: uppercase; }}
 h1 {{ font-size: 20pt; margin: 2px 0 2px; line-height: 1.15; }}
 .sub {{ color: #52514e; font-size: 9.5pt; margin-bottom: 10px; }}
-h2 {{ font-size: 12pt; margin: 11px 0 4px; padding-bottom: 3px; border-bottom: 1px solid #e1e0d9; }}
-.lead {{ font-size: 11pt; line-height: 1.4; margin: 6px 0 10px; }}
-.kpis {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 8px 0 10px; }}
+h2 {{ font-size: 12pt; margin: 9px 0 3px; padding-bottom: 2px; border-bottom: 1px solid #e1e0d9; }}
+.lead {{ font-size: 11pt; line-height: 1.38; margin: 4px 0 8px; }}
+.kpis {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 6px 0 8px; }}
 .kpi {{ border: 1px solid #e1e0d9; border-radius: 6px; padding: 7px 9px; }}
 .kpi b {{ display: block; font-size: 15pt; line-height: 1.1; }}
 .kpi span {{ color: #52514e; font-size: 8.6pt; }}
 .kpi.hot {{ border-color: #2a78d6; background: #f2f7fd; }}
 img {{ width: 100%; border: 1px solid #e1e0d9; border-radius: 6px; }}
-ul {{ margin: 4px 0 0 0; padding-left: 16px; }} li {{ margin: 0 0 4px; }}
+ul {{ margin: 3px 0 0 0; padding-left: 16px; }} li {{ margin: 0 0 3px; }}
 .tag {{ font-size: 7.6pt; color: #52514e; border: 1px solid #c3c2b7; border-radius: 3px; padding: 0 4px; margin-left: 4px; white-space: nowrap; }}
 table {{ width: 100%; border-collapse: collapse; font-size: 9pt; margin-top: 4px; }}
 th {{ text-align: left; color: #52514e; font-weight: 600; border-bottom: 1px solid #c3c2b7; padding: 3px 5px; }}
-td {{ border-bottom: 1px solid #ecebe6; padding: 2px 5px; vertical-align: top; }}
+td {{ border-bottom: 1px solid #ecebe6; padding: 1px 5px; vertical-align: top; }}
 .r {{ text-align: right; }} th.r {{ text-align: right; }}
 .total td {{ font-weight: 700; border-top: 1px solid #c3c2b7; }}
 .note {{ color: #52514e; font-size: 8.4pt; }}
-.box {{ background: #f7f7f4; border-radius: 6px; padding: 8px 10px; margin-top: 8px; }}
+.box {{ background: #f7f7f4; border-radius: 6px; padding: 6px 10px; margin-top: 6px; }}
 .page {{ page-break-after: always; }}
 .foot {{ color: #898781; font-size: 7.8pt; margin-top: 10px; }}
 """
@@ -244,8 +247,9 @@ def render(f: dict[str, Fact]) -> str:
 <div>
 <h2 style="margin-top:0">What the planner should have decided on {v['plan_date']}</h2>
 <table>
-<tr><th>Decision</th><th>Quantity</th><th>Deadline at the planning date · owner</th></tr>
-<tr><td><b>Plan the peak on reconstructed demand; move stock before buying</b></td><td>Indicative +{v['change']}: {v['moved']} moved forward from spring replenishment, {v['new']} new, {v['accepted_gap']} accepted gap (excess guardrail)</td><td>Supplier commitment by {v['order_first']} ({v['order_first_series']} series) or {v['order_last']} ({v['order_last_series']} series) · planner proposes, S&amp;OP approves, supply confirms</td></tr>
+<colgroup><col style="width:27%"><col style="width:45%"><col style="width:28%"></colgroup>
+<tr><th>Decision</th><th>Quantity</th><th>Deadline · owner</th></tr>
+<tr><td><b>Plan the peak on reconstructed demand; move stock before buying</b></td><td>Indicative +{v['change']}: {v['moved']} moved forward from spring replenishment, {v['new']} new, {v['accepted_gap']} accepted gap (excess guardrail)</td><td>Commit suppliers by {v['order_first']} ({v['order_first_series']} series) or {v['order_last']} ({v['order_last_series']}) · planner, S&amp;OP, supply</td></tr>
 <tr><td><b>Size chase from the peak gap, not early shipments</b></td><td>Fallback floor of about {v['chase_floor']} units within last season's unused chase capacity</td><td>Chase order by {v['chase_first']} or {v['chase_last']} · planner with supply planning</td></tr>
 <tr><td><b>Rank exceptions by stockout days</b>, by SKU × region × channel</td><td>Top {v['top20']} of {v['cells']} cells by stockout days capture {v['top20_observable']} of true lost revenue (true top {v['top20']}: {v['top20_truth']})</td><td>Each monthly S&amp;OP · Demand Planner</td></tr>
 <tr><td><b>Escalate only shortfalls that survive forecast error</b></td><td>{v['in_transit']} in-transit units counted (landed by {v['in_transit_by']}): {v['step5_escalate']} escalate, {v['step5_protect']} protect, {v['step5_hold']} hold; error band adds {v['watch']} watch ({v['agree']} agree). Published list: {v['v1_escalations']} escalations.</td><td>Weekly S&amp;OE · Demand Planner</td></tr>
@@ -258,7 +262,7 @@ def render(f: dict[str, Fact]) -> str:
 {rows}
 <tr class=total><td>Total</td><td></td><td class=r>{v['change']}</td><td class=r>{v['moved']}</td><td class=r>{v['new']}</td><td>{v['accepted_gap']} units accepted as a gap</td></tr>
 </table>
-<p class="note">Change = (reconstructed − sold) Dec–Feb units × (1 + SKU growth), allocated to regions by stockout days. Unsold season-end stock that arrived as spring replenishment moves first; the rest is new units. No new units where over-buy exposure is at least {p['guardrail']} of estimated lost revenue (policy assumption).</p>
+<p class="note">Change = (reconstructed − sold) Dec–Feb units × (1 + SKU growth), allocated to regions by stockout days. Unsold spring-replenishment stock moves first; the rest is new. No new units where over-buy exposure is at least {p['guardrail']} of estimated lost revenue (policy).</p>
 
 <div class="box"><b>Could it have landed in time? (at the planning date; all dates now past)</b>
 <ul>
@@ -271,9 +275,9 @@ def render(f: dict[str, Fact]) -> str:
 <ul>
 <li><b>Direction: high.</b> Scored against simulation truth, the priority ranking matches {v['rank_match']} and {v['calls_survive']} survives recomputation with true demand. The observable top {v['top20']} cells capture {v['top20_observable']} of true lost revenue, against {v['top20_truth']} for the true top {v['top20']}.<span class=tag>truth</span></li>
 <li><b>Size: conservative.</b> Reconstruction finds {v['gap_recovered']} of the true Dec–Feb gap. The planner view also asks for more new units than truth suggests ({v['new_share_planner']} vs {v['new_share_truth']}).<span class=tag>truth</span></li>
-<li><b>Limits.</b> The data is simulated, and the peak throttle and shipment-based chase are designed into the generator; the test is that the diagnosis finds them from observable data. Lost revenue assumes no substitution. Supplier capacity, MOQs and order-change windows are not modelled.</li>
+<li><b>Limits.</b> Simulated data with the failure modes designed in; the test is that the diagnosis finds them. Lost revenue assumes no substitution; supplier capacity, MOQs and order-change windows are not modelled.</li>
 </ul>
-<div class="foot">Every number is generated from the committed CSVs: <b>python 04_scripts/run_pipeline.py --check</b> · github.com/Abhijit2409/demandiq-retail-demand-planning · Simulated demand, inventory and launch data with public weather; no company's internal data. Economic values are exposure proxies, not accounting profit.</div>
+<div class="foot">Every number is generated from the CSVs: <b>python 04_scripts/run_pipeline.py --check</b> · github.com/Abhijit2409/demandiq-retail-demand-planning · simulated data</div>
 </div>
 </body></html>"""
 
@@ -303,6 +307,14 @@ def pdf_text(pdf_path: Path) -> tuple[int, str, float]:
         return len(pdf.pages), " ".join(text.split()), smallest
 
 
+def page_bottoms(pdf_path: Path) -> list[float]:
+    """Lowest text position on each page, in points from the top."""
+    import pdfplumber
+
+    with pdfplumber.open(pdf_path) as pdf:
+        return [max(char["bottom"] for char in page.chars) for page in pdf.pages]
+
+
 def pdf_fonts(pdf_path: Path) -> set[str]:
     import pdfplumber
 
@@ -326,6 +338,11 @@ def verify(pdf_path: Path = PDF_FILE) -> list[str]:
         problems.append(f"{pages} pages (expected 2)")
     if smallest < MIN_FONT_PT:
         problems.append(f"smallest text is {smallest:.1f} pt (minimum {MIN_FONT_PT} pt)")
+    limit = PAGE_HEIGHT_PT - BOTTOM_MARGIN_PT - HEADROOM_PT
+    for number, bottom in enumerate(page_bottoms(pdf_path), start=1):
+        if bottom > limit:
+            problems.append(f"page {number} text ends {PAGE_HEIGHT_PT - BOTTOM_MARGIN_PT - bottom:.0f} pt above the "
+                            f"bottom margin; keep at least {HEADROOM_PT:.0f} pt so other machines stay on 2 pages")
     stray = sorted(found - allowed)
     if stray:
         problems.append(f"numbers not derived from the CSVs or declared as policy: {stray}")

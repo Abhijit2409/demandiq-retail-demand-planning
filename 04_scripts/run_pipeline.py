@@ -175,7 +175,9 @@ def same_content(path: Path, committed: bytes) -> bool:
         from pypdf import PdfReader
 
         def text(reader: PdfReader) -> list[str]:
-            return [" ".join((page.extract_text() or "").split()) for page in reader.pages]
+            # Whitespace-free per page: text extraction infers spaces from glyph
+            # positions, which can differ in the last decimal across machines.
+            return ["".join((page.extract_text() or "").split()) for page in reader.pages]
 
         return text(PdfReader(path)) == text(PdfReader(io.BytesIO(committed)))
     return False
