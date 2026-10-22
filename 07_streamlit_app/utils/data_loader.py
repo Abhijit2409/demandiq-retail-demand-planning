@@ -136,6 +136,10 @@ def load_weekly() -> pd.DataFrame:
             f"Weekly Trajectory must be {EXPECTED_WEEKLY_ROWS} rows, found {len(df)}."
         )
     df["forecast_week_start"] = pd.to_datetime(df["forecast_week_start"])
+    # Decision layers written before the replenishment estimate carry seasonal drops only.
+    if "planned_receipt_units" not in df.columns:
+        df["estimated_replenishment_receipt_units"] = 0.0
+        df["planned_receipt_units"] = df["committed_receipt_units"]
     n_weeks = df["forecast_week_start"].nunique()
     n_series = df[["sku_id", "channel_id"]].drop_duplicates().shape[0]
     if n_weeks != EXPECTED_WEEKS or n_series != EXPECTED_SERIES:

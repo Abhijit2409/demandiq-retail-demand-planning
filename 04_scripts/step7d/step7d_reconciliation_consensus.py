@@ -22,7 +22,7 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 
-ROOT = Path(r"D:\Downloads\DemandIQ")
+ROOT = Path(__file__).resolve().parents[2]  # repository root
 V0_FILE = ROOT / "05_outputs" / "launch_step7c" / "DemandIQ_Step7C_18M_Analytical_Forecast.csv"
 ECON = ROOT / "02_data" / "processed" / "DemandIQ_Step3D_v4_Retail_Economics.csv"
 OUTDIR = Path(os.environ.get("STEP7D_OUTDIR", str(ROOT / "05_outputs" / "launch_step7d")))

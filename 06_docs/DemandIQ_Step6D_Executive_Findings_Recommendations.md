@@ -1,5 +1,7 @@
 # DemandIQ — Step 6D — Executive Findings & Business Recommendations
 
+> **Read this as the zero-replenishment view.** The figures below are the v1 plan as published (`05_outputs/v1_published_plan/`), which counted only the seasonal drops as supply. Where this page says "committed" receipts or supply, read projected seasonal drops: last year's seasonal receipts shifted 52 weeks, not confirmed supplier orders. The current plan adds an unconfirmed estimate of replenishment and, if it arrives as modelled, escalates none; see the [Step 8 decision page](./DemandIQ_Step8_Peak_Season_Decisions.md).
+
 **Scope:** Business interpretation of the frozen DemandIQ decision engine. Read-only — no analytical file, forecast, classification, or economic value was modified. Every figure below reconciles to the frozen Step 6A decision layer.
 
 **What this is:** a portfolio simulation of a premium outdoor apparel demand-planning problem. Economic figures are **planning exposure proxies, not accounting profit**, and this is **not any real company's internal data**.

@@ -36,9 +36,7 @@ from pathlib import Path
 # 1. PATHS
 # ============================================================
 
-PROJECT_DIR = Path(
-    r"D:\Downloads\DemandIQ"
-)
+PROJECT_DIR = Path(__file__).resolve().parents[2]  # repository root
 
 HISTORICAL_OVERLAY_FILE = (
     PROJECT_DIR

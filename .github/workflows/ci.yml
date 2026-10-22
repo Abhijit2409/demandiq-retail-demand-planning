@@ -1,0 +1,72 @@
+name: CI
+
+# Clean rebuild + focused checks on every push and pull request.
+# Manual runs can also refit the statsmodels steps and report drift.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      refit:
+        description: "Also refit ETS, SARIMA and Step 4D and report drift (about 4 minutes)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rebuild-and-test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements*.txt
+
+      - name: Install pinned dependencies
+        run: python -m pip install -r requirements-dev.txt
+
+      - name: Install Chromium for the PDF brief
+        run: python -m playwright install --with-deps chromium
+
+      - name: Clean rebuild (fails if any committed output changes)
+        run: python 04_scripts/run_pipeline.py --check
+
+      - name: Focused checks
+        run: python -m pytest -q
+
+      - name: Working tree unchanged
+        run: |
+          git status --porcelain
+          git diff --exit-code
+
+      - name: Upload step logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipeline-logs
+          path: build/logs/
+
+  refit-drift:
+    if: github.event_name == 'workflow_dispatch' && inputs.refit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements*.txt
+      - run: python -m pip install -r requirements.txt
+      - name: Refit ETS, SARIMA and Step 4D on a scratch copy and report drift
+        run: python 04_scripts/run_pipeline.py --refit

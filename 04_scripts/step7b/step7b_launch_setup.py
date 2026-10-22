@@ -14,7 +14,7 @@ Mature Steps 4A-6F outputs are not touched.
 import pandas as pd
 from pathlib import Path
 
-ROOT = Path(r"D:\Downloads\DemandIQ")
+ROOT = Path(__file__).resolve().parents[2]  # repository root
 OUTDIR = ROOT / "05_outputs" / "launch_step7b"
 OUTDIR.mkdir(parents=True, exist_ok=True)
 

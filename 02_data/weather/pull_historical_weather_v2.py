@@ -1021,7 +1021,10 @@ def write_daily(
 
             file,
 
-            fieldnames=fields
+            fieldnames=fields,
+
+            # LF on every OS, matching the committed files.
+            lineterminator="\n"
 
         )
 
@@ -1477,7 +1480,10 @@ def write_weekly(
 
             file,
 
-            fieldnames=fields
+            fieldnames=fields,
+
+            # LF on every OS, matching the committed files.
+            lineterminator="\n"
 
         )
 

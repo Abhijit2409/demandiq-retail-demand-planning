@@ -30,9 +30,11 @@ SKILL.md
 archive/
 old_versions/
 
-# Generated weather cache and backups
-02_data/weather/cache/
+# Weather backups (the ERA5 cache is committed so the weather layer rebuilds offline)
 *_8region_backup.csv
+
+# Pipeline run logs
+build/
 
 # Future project extensions
 06_docs/DemandIQ_Step7A_New_Product_Launch_Design.md

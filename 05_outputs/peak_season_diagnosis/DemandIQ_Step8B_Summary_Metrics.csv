@@ -1,0 +1,39 @@
+metric,value,unit,basis
+"Estimated replenishment in the 13-week projection (unconfirmed, not open orders)",6512.172,units,PLANNER_VIEW
+"Last projected replenishment arrival (projected date, not a supplier date)",2026-07-13,date,PLANNER_VIEW
+Replenishment confirmation status,UNCONFIRMED_ESTIMATE,status,PLANNER_VIEW
+Projected seasonal drops in the 13-week projection (not confirmed supplier orders),26597.065,units,PLANNER_VIEW
+Seasonal drop projection status,PROJECTED_NOT_CONFIRMED,status,PLANNER_VIEW
+"Replenishment proxy series WAPE, worst backtest year",29.48,%,PLANNER_VIEW
+"Replenishment proxy portfolio error, worst backtest year",24.178,%,PLANNER_VIEW
+"Replenishment proxy series-week WAPE, best backtest year",56.844,%,PLANNER_VIEW
+"Replenishment proxy series-week WAPE, worst backtest year",70.975,%,PLANNER_VIEW
+v1 published (zero replenishment): ESCALATE,3,series,PLANNER_VIEW
+v1 published (zero replenishment): PROTECT,6,series,PLANNER_VIEW
+v1 published (zero replenishment): escalated series,"APS-001 WHOLESALE, CTS-001 RETAIL, IMH-001 WHOLESALE",series,PLANNER_VIEW
+Step 5 if the estimate arrives as modelled: ESCALATE,0,series,PLANNER_VIEW
+Step 5 if the estimate arrives as modelled: PROTECT,7,series,PLANNER_VIEW
+Step 5 if the estimate arrives as modelled: PROTECT on low coverage,6,series,PLANNER_VIEW
+Step 5 if the estimate arrives as modelled: PROTECT on the severe-weather test,1,series,PLANNER_VIEW
+Step 5 if the estimate arrives as modelled: HOLD,2,series,PLANNER_VIEW
+Step 8 queue: ESCALATE,0,series,PLANNER_VIEW
+Step 8 queue: WATCH,1,series,PLANNER_VIEW
+Step 8 queue: PROTECT,5,series,PLANNER_VIEW
+Step 8 queue: NO ACTION,3,series,PLANNER_VIEW
+Series where Step 5 and Step 8 agree,7,of 9,PLANNER_VIEW
+"Largest cover difference, Step 5 vs Step 8",0.015,weeks,PLANNER_VIEW
+Combined queue: ESCALATE,0,series,PLANNER_VIEW
+Combined queue: WATCH,1,series,PLANNER_VIEW
+Combined queue: PROTECT,6,series,PLANNER_VIEW
+Combined queue: NO ACTION,2,series,PLANNER_VIEW
+Replenishment stress applied (worst backtest series WAPE),29.5,%,PLANNER_VIEW
+Share of the estimate arriving under the uniform stress,70.5,%,PLANNER_VIEW
+Series whose Step 5 tier changes under a stress,3,of 9,PLANNER_VIEW
+Series whose tier changes under a stress (list),"CTS-001 ECOM, CTS-001 WHOLESALE, IMH-001 RETAIL",series,PLANNER_VIEW
+Series escalated (P1) under the tested stresses,0,of 9,PLANNER_VIEW
+Most replenishment any v1 escalation needs to clear,30.038,% of estimate,PLANNER_VIEW
+Series needing the most of its estimate,APS-001 WHOLESALE,series,PLANNER_VIEW
+Backtest series-years arriving below the uniform stress,2 of 27,series-years,PLANNER_VIEW
+Lowest backtest arrival,54.172,% of estimate,PLANNER_VIEW
+"Lowest backtest arrival (series, plan year)","APS-001 WHOLESALE, PY2024",series,PLANNER_VIEW
+Backtest series-years below a v1 escalation's needed share,0 of 9,series-years,PLANNER_VIEW

@@ -23,35 +23,56 @@ from statsmodels.tools.sm_exceptions import ConvergenceWarning
 # ============================================================
 
 
-PROJECT_DIR = Path(r"D:\Downloads\DemandIQ")
+PROJECT_DIR = Path(__file__).resolve().parents[2]  # repository root
 
 FORECAST_INPUT_FILE = (
     PROJECT_DIR
+    / "03_model_evidence"
+    / "step4b_forecasting"
     / "DemandIQ_Step4B_Forecasting_Input.csv"
 )
 
 FOLD_FILE = (
     PROJECT_DIR
+    / "03_model_evidence"
+    / "step4b_forecasting"
+    / "backtest"
     / "DemandIQ_Step4B_Backtest_Folds.csv"
 )
 
 PREDICTIONS_OUTPUT_FILE = (
     PROJECT_DIR
+    / "03_model_evidence"
+    / "step4b_forecasting"
+    / "sarima"
+    / "screen"
     / "DemandIQ_Step4B_SARIMA_Screen_Predictions.csv"
 )
 
 FOLD_METRICS_OUTPUT_FILE = (
     PROJECT_DIR
+    / "03_model_evidence"
+    / "step4b_forecasting"
+    / "sarima"
+    / "screen"
     / "DemandIQ_Step4B_SARIMA_Screen_Fold_Metrics.csv"
 )
 
 SUMMARY_OUTPUT_FILE = (
     PROJECT_DIR
+    / "03_model_evidence"
+    / "step4b_forecasting"
+    / "sarima"
+    / "screen"
     / "DemandIQ_Step4B_SARIMA_Screen_Summary.csv"
 )
 
 FIT_QA_OUTPUT_FILE = (
     PROJECT_DIR
+    / "03_model_evidence"
+    / "step4b_forecasting"
+    / "sarima"
+    / "screen"
     / "DemandIQ_Step4B_SARIMA_Screen_Fit_QA.csv"
 )
 

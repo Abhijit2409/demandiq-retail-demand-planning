@@ -15,10 +15,10 @@ Completed · Simulated data · Retrospective decision case
 Every outerwear buy starts from last year's sales, so stockouts in the peak quietly shrink next year's peak, and fill falls every season.
 
 - **86% → 78%**: Dec–Feb fill over four plan years, traced to a sales-based buy
-- **+10,339 units (+21%)**: indicative peak change on reconstructed demand, evaluated at the June 29, 2026 planning date (4,574 moved, 5,613 new)
+- **+10,339 units (+22%)**: indicative peak change on reconstructed demand, evaluated at the June 29, 2026 planning date (4,574 moved, 5,613 new)
 - **9 / 9 series**: priority and call confirmed against simulation truth
 
-Python · pandas · statsmodels · matplotlib · Streamlit
+Python · pandas · statsmodels · matplotlib · Streamlit · pytest · GitHub Actions
 
 [Explore project] [GitHub]
 
@@ -58,6 +58,7 @@ Peak-season fill fell from 85.9% to 78.1% between PY2022 and PY2026, while annua
 
 - 83% of lost units fall in Dec–Feb. The original 13-week summer window held 1.1% of lost demand.
 - In that summer window, weather scenarios and stockout correction change none of the nine planner decisions. The supply assumption changes six, which is why the decision belongs in the peak.
+- The published 13-week plan assumed zero replenishment and escalated three series. Adding an estimate of replenishment (6,512 units, last year's pattern shifted 52 weeks, not confirmed open orders; the seasonal drops are projected the same way), the planning engine escalates none if the estimate arrives as modelled: 0 escalate, 7 protect, 2 hold. A planner must confirm open orders and receipt dates before that replaces the published list. An independent error-band check agrees on 7 of 9 series.
 - Stockout correction lifts Dec–Feb demand by 21% (the true gap is 28%), so the recommended change is conservative.
 - The top 20 of 81 SKU × region × channel cells by true lost revenue hold 60.2% of it. The observable selection, the top 20 by stockout days, captures 53.4% (rank correlation 0.90).
 - At the June 29 planning date the decision was already urgent. 22-week orders had to be committed by Jun 29 to Jul 13 to land before the first stockouts; otherwise chase alone could have landed about 4,355 units.
@@ -65,6 +66,10 @@ Peak-season fill fell from 85.9% to 78.1% between PY2022 and PY2026, while annua
 ### Business recommendation
 
 At the June 29, 2026 planning date, plan the peak on reconstructed demand and move stock before buying more. Commit suppliers by Jun 29 to Jul 13, order chase by Sep 21 to Oct 5, and rank weekly exceptions by stockout days. The +10,339-unit scenario is indicative: early shipping and supplier capacity were never confirmed, and every deadline has now passed.
+
+### Reproducibility
+
+`run_pipeline.py --check` rebuilds the reproducible downstream outputs (weather, the recovered forecasting input, baselines, champion selection, Steps 5–8 and the brief) and fails if any of them differs from the committed version; CI runs the same check. It does not rebuild everything. The Step 3 data generator is still missing, so its CSVs are frozen source data, and the row-level Step 4A reconstruction is still missing. The SKU × channel reconstructed series is recovered exactly from committed backtest evidence, but the steps that need row-level Step 4A cannot run. ETS, SARIMA and Step 4D refits can be re-run, but they drift slightly across library versions, so downstream steps read their committed outputs. Every number in the two-page brief is generated from the outputs and checked.
 
 ### Limitations
 
@@ -75,7 +80,7 @@ At the June 29, 2026 planning date, plan the peak on reconstructed demand and mo
 
 ### Images
 
-Replace the app screenshots with the three Step 8 charts in `08_assets/charts/`. The app screenshots show the superseded summer escalation list.
+Replace the app screenshots with the three Step 8 charts in `08_assets/charts/`. The app screenshots show the zero-replenishment summer escalation list (3 escalate), without the conditional comparison.
 
 - `step8_fill_trend.png`: Dec–Feb fill fell from 86% to 78%
 - `step8_lost_demand_by_month.png`: 81% of lost demand falls in Dec–Feb
@@ -84,6 +89,6 @@ Replace the app screenshots with the three Step 8 charts in `08_assets/charts/`.
 ### Replace on the current page
 
 - "95.68% of demand lost to stockouts recovered": a five-year net figure; the latest year recovered 79%
-- "3 / 9 series flagged as weekly service risks": these disappear once replenishment is counted
-- "3 ESCALATE, 6 PROTECT": superseded by 0 escalate, 1 watch, 5 protect, 3 no action
+- "3 / 9 series flagged as weekly service risks": these disappear if the estimated replenishment arrives as modelled
+- "3 ESCALATE, 6 PROTECT": this is the zero-replenishment view. Show it next to the conditional result (0 escalate, 7 protect, 2 hold, if the estimated replenishment arrives) and say open orders are not yet confirmed.
 - "a work list with owners": now true only in the Step 8 decision table, so link there

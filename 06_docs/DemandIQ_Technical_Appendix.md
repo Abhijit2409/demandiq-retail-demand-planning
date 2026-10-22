@@ -1,4 +1,4 @@
-> **Technical appendix.** This is the original DemandIQ README, kept for the method detail. Start with the [README](../README.md) and the [Step 8 decision page](./DemandIQ_Step8_Peak_Season_Decisions.md). Step 8 supersedes the 13-week escalation list shown here (3 ESCALATE): with last year's replenishment in the supply view, and flags tested across forecast error, it becomes 0 ESCALATE, 1 WATCH, 5 PROTECT, 3 no action.
+> **Technical appendix.** This is the original DemandIQ README, kept for the method detail. Start with the [README](../README.md) and the [Step 8 decision page](./DemandIQ_Step8_Peak_Season_Decisions.md). The 13-week escalation list shown here (3 ESCALATE, 6 PROTECT) is the v1 plan, which counted only the seasonal drops as supply. Step 5 now also adds an estimate of 6,512 replenishment units (last year's receipts shifted 52 weeks, not confirmed open orders). If that estimate arrives as modelled it escalates none: 0 ESCALATE, 7 PROTECT, 2 HOLD, and Step 8's error-band check agrees on 7 of 9 series. The published list stands until a planner confirms open-order quantities and receipt dates. Both views use seasonal drops projected from last year's receipts (column `committed_receipt_units`, a v1 name kept for compatibility), not confirmed supplier orders. The v1 outputs are kept in `05_outputs/v1_published_plan/`, and the app screenshots below show v1.
 
 # DemandIQ
 
@@ -173,7 +173,7 @@ The portfolio Base fill rate is **98.77%** against a **92%** target. That looks 
 | CTS-001 | RETAIL | 95.6% | **65.4%** | **ESCALATE** |
 | IMH-001 | WHOLESALE | 96.1% | **74.1%** | **ESCALATE** |
 
-All three share a worst week of **2026-08-24**, when committed receipts are zero across all nine mature series.
+All three share a worst week of **2026-08-24**, when projected seasonal receipts are zero across all nine mature series (v1 view, zero replenishment).
 
 That timing coincides with localized service failures, but I do **not** treat it as proven causation.
 

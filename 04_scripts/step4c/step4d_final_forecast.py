@@ -31,13 +31,9 @@ import warnings
 # 1. PATHS
 # ============================================================
 
-PROJECT_DIR = Path(
-    r"D:\Downloads\DemandIQ"
-)
+PROJECT_DIR = Path(__file__).resolve().parents[2]  # repository root
 
 
-# Search automatically because the Step 4B input may have
-# been moved during folder cleanup.
 FORECAST_INPUT_NAME = (
     "DemandIQ_Step4B_Forecasting_Input.csv"
 )
@@ -197,52 +193,22 @@ CHAMPIONS = {
 
 
 # ============================================================
-# 4. FIND STEP 4B FORECASTING INPUT
+# 4. STEP 4B FORECASTING INPUT (repository location)
 # ============================================================
 
-def find_forecast_input():
-
-    matches = list(
-        PROJECT_DIR.rglob(
-            FORECAST_INPUT_NAME
-        )
-    )
-
-    matches = [
-        x
-        for x in matches
-        if "archive" not in str(x).lower()
-        and "backup" not in str(x).lower()
-    ]
-
-    if len(matches) == 0:
-
-        raise FileNotFoundError(
-            f"{FORECAST_INPUT_NAME} not found."
-        )
-
-    if len(matches) > 1:
-
-        print(
-            "\nMultiple Step 4B forecasting inputs found:"
-        )
-
-        for path in matches:
-            print(
-                " -",
-                path
-            )
-
-        raise RuntimeError(
-            "Keep only one active Step 4B forecasting input."
-        )
-
-    return matches[0]
-
-
 FORECAST_INPUT_FILE = (
-    find_forecast_input()
+    PROJECT_DIR
+    / "03_model_evidence"
+    / "step4b_forecasting"
+    / FORECAST_INPUT_NAME
 )
+
+if not FORECAST_INPUT_FILE.exists():
+    raise FileNotFoundError(
+        f"{FORECAST_INPUT_FILE} not found. It is built by "
+        "04_scripts/step4b/step4b_1_prepare_forecasting_data.py from the "
+        "Step 4A reconstruction; see 06_docs/DemandIQ_Reproducibility.md."
+    )
 
 
 # ============================================================

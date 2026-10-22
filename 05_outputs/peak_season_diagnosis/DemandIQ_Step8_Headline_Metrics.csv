@@ -7,6 +7,8 @@ metric,value,unit,basis,role
 "Lost revenue, PY2026",6652337.58,CAD,SIMULATION_TRUTH,DIAGNOSIS
 "Lost revenue as share of net revenue, PY2026",9.106,%,SIMULATION_TRUTH,DIAGNOSIS
 Share of PY2026 lost units in Dec-Feb,82.576,%,SIMULATION_TRUTH,DIAGNOSIS
+"Share of lost units in Dec-Feb, PY2022-PY2026",81.369,%,SIMULATION_TRUTH,DIAGNOSIS
+"Share of lost units in Jul-Sep (13-week S&OE window), PY2022-PY2026",1.105,%,SIMULATION_TRUTH,DIAGNOSIS
 "Buy basis vs prior-year true demand, PY2023",-4.985,%,SIMULATION_TRUTH,DIAGNOSIS
 "Buy basis vs prior-year true demand, PY2026",-8.942,%,SIMULATION_TRUTH,DIAGNOSIS
 "Buy basis vs prior-year reconstructed demand, PY2026",-9.021,%,PLANNER_VIEW,DIAGNOSIS

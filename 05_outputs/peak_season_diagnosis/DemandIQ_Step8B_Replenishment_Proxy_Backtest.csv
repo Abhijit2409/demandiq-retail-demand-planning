@@ -1,0 +1,4 @@
+target_plan_year,proxy_source_plan_year,actual_units_weeks_1_13,proxy_units_weeks_1_13,portfolio_error_pct,series_wape_pct,series_week_wape_pct,share_arriving_weeks_1_3_pct,basis
+PY2024,PY2023,5744.5467,4355.6302,-24.178,29.4803,70.9754,100.0,PLANNER_VIEW
+PY2025,PY2024,5742.6955,6078.1591,5.8416,21.03,69.2218,100.0,PLANNER_VIEW
+PY2026,PY2025,6155.6413,6072.0118,-1.3586,14.6482,56.8436,100.0,PLANNER_VIEW

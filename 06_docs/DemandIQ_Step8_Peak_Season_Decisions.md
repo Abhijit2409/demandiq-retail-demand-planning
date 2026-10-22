@@ -1,6 +1,6 @@
 # DemandIQ · Step 8 · Peak-Season Decisions
 
-> **Simulation notice.** Portfolio simulation; no real company data. Reproduce every number with `python 04_scripts/step8/step8_peak_diagnosis.py`.
+> **Simulation notice.** Portfolio simulation; no real company data. Rebuild every number with `python 04_scripts/run_pipeline.py --check` (see [Reproducibility](./DemandIQ_Reproducibility.md)).
 >
 > **Retrospective decision case.** The recommendation is evaluated at the published plan's as-of date, **June 29, 2026**. Every order and chase deadline below (Jun 29 – Oct 5, 2026) had passed by the time of writing (October 21, 2026). The page shows what the planner should have decided on June 29, not actions still open.
 >
@@ -8,7 +8,7 @@
 
 ## The decision
 
-**On June 29, 2026, the planner should have planned the Dec–Feb peak on reconstructed demand, not last year's sales.** Evaluated at that date, the indicative scenario for the coming peak is **+10,339 units (+21% on last season's Dec–Feb sales)**:
+**On June 29, 2026, the planner should have planned the Dec–Feb peak on reconstructed demand, not last year's sales.** Evaluated at that date, the indicative scenario for the coming peak is **+10,339 units (+22% on last season's Dec–Feb sales)**:
 
 - **4,574 moved forward:** spring replenishment shipped before the peak instead of after it.
 - **5,613 new.**
@@ -48,8 +48,44 @@ Deadlines are as evaluated at the June 29, 2026 planning date; all have passed.
 | 1 | Plan the peak on reconstructed demand, moving stock before buying | Indicative +10,339 units: 4,574 moved, 5,613 new, 152 accepted gap | Supplier commitment by Jun 29 (6 series) or Jul 13, 2026 (3 series) · planner proposes, Manager of Merchandise Planning approves, supply planning confirms early shipping and capacity | No new units where over-buy exposure ≥ 50% of estimated lost revenue (a policy assumption to set with finance); season-end cover ≤ 8 weeks | Direction: high (calls and priority match the simulation 9 of 9). Size: indicative; early shipping and supplier capacity are unconfirmed |
 | 2 | Size chase from the peak gap, not from early shipments | Fallback floor of about 4,355 units within last season's unused capacity; above that, needs supplier capacity | Chase order by Sep 21 (6 series) or Oct 5, 2026 (3 series), so it lands before the first stockout · planner with supply planning | Chase ≤ 8% of commitment | Medium: last season's headroom is only an indicator |
 | 3 | Rank exceptions by stockout days, by SKU × region × channel | Top 20 of 81 cells by stockout days (ties broken by sales) | Each monthly S&OP · Demand Planner | – | Good: those 20 cells capture 53.4% of true lost revenue, against 60.2% for the true top 20 (rank correlation 0.90; 15 of 20 cells shared) |
-| 4 | Replace the summer escalation list | 0 ESCALATE, 1 WATCH (APS-001 Wholesale, short only if demand runs 18% above forecast), 5 PROTECT, 3 no action; the published list had 3 ESCALATE | Weekly S&OE · planner decides, supply confirms in-transit replenishment | Re-check weekly as replenishment confirms | Medium: assumes last year's replenishment pattern repeats |
+| 4 | Re-test the summer escalation list against replenishment | If the estimated 6,512 replenishment units arrive as modelled: 0 ESCALATE, 7 PROTECT, 2 HOLD. The error-band check adds 1 WATCH (APS-001 Wholesale, short only if demand runs 18% above forecast). With zero replenishment: 3 ESCALATE, 6 PROTECT, the published list | Weekly S&OE · the planner confirms open-order quantities and receipt dates before the conditional calls replace the published list | Keep the published escalations until confirmed; re-check weekly as receipts confirm | Low until confirmed: the estimate repeats last year's pattern and is not an order book. A 29.5% cut brings back no escalation, but that is one scenario; series-week error was 57–71% |
 | 5 | Launch reserve-release rule | Hold the 991-unit reserve (12% of the 8,259-unit buy) centrally; release it to any channel running 5+ pp above planned mix at W1–W2 | Launch checkpoints W1–W2 · planner with merchants | Total launch inventory unchanged | Medium: one seeded launch. The rule fires at W1 (ECOM +5.4 pp) |
+
+## The 13-week queue with and without estimated replenishment
+
+The published 13-week plan (v1) counted only the seasonal drops as supply, so it assumed zero replenishment, and it escalated three series for August–September misses. Step 5 now adds an **estimate** of replenishment receipts.
+
+- **Estimate, not orders.** Last year's replenishment receipts in the same weeks, shifted 52 weeks and grown by SKU: **6,512 units**. These are not confirmed open orders.
+- **Seasonal drops are projected too.** The seasonal drops are projected too: last year's seasonal receipts shifted 52 weeks and grown by SKU, not confirmed supplier orders. They keep the v1 column name `committed_receipt_units` so the published plan still reproduces; `seasonal_receipt_projection_status = PROJECTED_NOT_CONFIRMED` marks them on every row. Both results below assume the drops land as projected.
+- **Projected timing.** Under the replenishment policy nothing can be ordered inside the window, so if last year's pattern repeats, the units land by **Jul 13, 2026**, ahead of the weeks they serve. That check validates the projected dates against the policy, not supplier commitments.
+- **Result, if the estimate arrives as modelled.** Service holds in every week and no series is escalated: **0 ESCALATE, 7 PROTECT, 2 HOLD**.
+- **Result with zero replenishment.** The published list: **3 ESCALATE, 6 PROTECT** (APS-001 Wholesale, CTS-001 Retail, IMH-001 Wholesale).
+- **Before acting.** A planner must confirm open-order quantities and receipt dates, for the seasonal drops and the replenishment, before the conditional calls replace the published escalation list.
+
+Step 8B (`DemandIQ_Step8B_Step5_Reconciliation.csv`) compares the engine's conditional calls with Step 8's error-band queue, series by series:
+
+| Series | Zero replenishment (v1, published) | Step 5, if the estimate arrives as modelled | Step 8, error band | Why they differ |
+| --- | --- | --- | --- | --- |
+| APS-001 ECOM | PROTECT | PROTECT (cover 2.24 wk) | PROTECT | – |
+| APS-001 Retail | PROTECT | PROTECT (1.64 wk) | PROTECT | – |
+| APS-001 Wholesale | ESCALATE | PROTECT (0.74 wk) | WATCH | Step 8 tests the forecast-error band. At +18% demand this series misses 92% in 2+ weeks (worst week 32%). Step 5 plans on the point forecast. Both protect stock and neither escalates |
+| CTS-001 ECOM | PROTECT | HOLD (2.77 wk) | No action | – |
+| CTS-001 Retail | ESCALATE | PROTECT (1.80 wk) | PROTECT | – |
+| CTS-001 Wholesale | PROTECT | HOLD (3.18 wk) | No action | – |
+| IMH-001 ECOM | PROTECT | PROTECT (2.06 wk) | PROTECT | – |
+| IMH-001 Retail | PROTECT | PROTECT, severe-weather test (2.55 wk base, 2.48 severe) | No action | Only Step 5 runs a weather scenario, and it takes cover under the 2.5-week policy |
+| IMH-001 Wholesale | ESCALATE | PROTECT (1.75 wk) | PROTECT | – |
+| **Total** | **3 escalate, 6 protect** | **0 escalate, 7 protect, 2 hold** | **0 escalate, 1 watch, 5 protect, 3 no action** | **7 of 9 agree** |
+
+Step 8 holds restocked returns at the v1 values. Step 5 recomputes them from the higher shipments, so ending cover differs by at most 0.015 weeks. In S&OE, run the stricter of the two calls: 1 WATCH (APS-001 Wholesale, also below cover policy), 6 PROTECT, 2 no action.
+
+**How firm is it?** Conditional, and the sensitivity tests below do not make it assured.
+
+- **Backtest.** The replenishment estimate was backtested on three earlier plan years. Its series-level error was 15–30% and its series-week error 57–71%; 100% of the replenishment landed in weeks 1–3 each year.
+- **Per series.** Actual arrivals ran from 54% to 418% of the estimate across the 27 series-years. Two series-years fell below 70.5% (APS-001 Wholesale, PY2024, 54%; IMH-001 Retail, PY2025, 58%), so the uniform stress below was not the worst case for every series.
+- **Volume stress.** Cutting every series' estimate by 29.5% (the worst series error, so 70.5% arrives) brings back no escalation, but the protect/hold call flips for CTS-001 ECOM, CTS-001 Wholesale and IMH-001 Retail. This is one scenario, not a bound.
+- **Timing stress.** Landing each series' whole estimate on Jul 13, or in the last week of the window (Sep 21), brings back no escalation either. Quantity matters more than timing inside the window, provided the units arrive at all.
+- **Margin on the escalations.** The three published escalations clear only if at least 30.0% (APS-001 Wholesale, 183 estimated units), 10.1% (CTS-001 Retail) and 6.5% (IMH-001 Wholesale) of their estimates arrive. The 29.5% stress cut is a different measure: it leaves 70.5% arriving, 40 points above APS-001 Wholesale's threshold. No backtest year fell below a threshold, but three years per series is a thin record.
 
 ## Peak scenario by series (observable inputs only)
 
@@ -128,7 +164,9 @@ Truth is used here only to score the recommendation above; nothing in it feeds b
 
 ## Files
 
-- Script: `04_scripts/step8/step8_peak_diagnosis.py` (reads committed files only; about 3 seconds; identical outputs on every run)
+- Script: `04_scripts/step8/step8_peak_diagnosis.py` (reads committed files only; about 3 seconds; identical outputs on every run). The whole chain: `python 04_scripts/run_pipeline.py --check`
+- Step 5 reconciliation: `04_scripts/step8/step8b_step5_reconciliation.py` → `…_Step8B_Step5_Reconciliation.csv`, `…_Step8B_Replenishment_Proxy_Backtest.csv`, `…_Step8B_Summary_Metrics.csv`
+- Brief: `04_scripts/step8/step8c_build_brief.py` builds `06_docs/DemandIQ_Peak_Season_Brief.pdf` and checks every number in it against these CSVs
 - Recommendation: `05_outputs/peak_season_diagnosis/DemandIQ_Step8_Peak_Buy_Recommendation.csv`, `…_Peak_Buy_by_Region.csv`, `…_Peak_Move_Feasibility.csv`
 - Validation: `…_Peak_Buy_Validation.csv`
 - Every headline number, with its basis and role (diagnosis, recommendation, validation): `…_Headline_Metrics.csv`

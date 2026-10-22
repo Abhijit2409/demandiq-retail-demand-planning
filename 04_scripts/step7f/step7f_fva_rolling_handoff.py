@@ -49,7 +49,7 @@ import pandas as pd
 # ============================================================
 # Paths (frozen inputs are read-only)
 # ============================================================
-ROOT = Path(r"D:\Downloads\DemandIQ")
+ROOT = Path(__file__).resolve().parents[2]  # repository root
 ECON = ROOT / "02_data" / "processed" / "DemandIQ_Step3D_v4_Retail_Economics.csv"
 S7C_13W = ROOT / "05_outputs" / "launch_step7c" / "DemandIQ_Step7C_13W_Launch_Forecast.csv"
 S7D_VERS = ROOT / "05_outputs" / "launch_step7d" / "DemandIQ_Step7D_Forecast_Versions.csv"

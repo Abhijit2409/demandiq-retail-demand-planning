@@ -35,50 +35,81 @@ from statsmodels.tools.sm_exceptions import ConvergenceWarning
 # 1. PATHS
 # ------------------------------------------------------------
 
-PROJECT_DIR = Path(r"D:\Downloads\DemandIQ")
+PROJECT_DIR = Path(__file__).resolve().parents[2]  # repository root
 
 FORECAST_FILE = (
     PROJECT_DIR
+    / "03_model_evidence"
+    / "step4b_forecasting"
     / "DemandIQ_Step4B_Forecasting_Input.csv"
 )
 
 FOLD_FILE = (
     PROJECT_DIR
+    / "03_model_evidence"
+    / "step4b_forecasting"
+    / "backtest"
     / "DemandIQ_Step4B_Backtest_Folds.csv"
 )
 
 BASELINE_SUMMARY_FILE = (
     PROJECT_DIR
+    / "03_model_evidence"
+    / "step4b_forecasting"
+    / "baseline"
     / "DemandIQ_Step4B_Baseline_Summary.csv"
 )
 
 ETS_SUMMARY_FILE = (
     PROJECT_DIR
+    / "03_model_evidence"
+    / "step4b_forecasting"
+    / "ets"
     / "DemandIQ_Step4B_ETS_Summary.csv"
 )
 
 PREDICTIONS_OUTPUT = (
     PROJECT_DIR
+    / "03_model_evidence"
+    / "step4b_forecasting"
+    / "sarima"
+    / "targeted"
     / "DemandIQ_Step4B_SARIMA_Targeted_Predictions.csv"
 )
 
 FOLD_METRICS_OUTPUT = (
     PROJECT_DIR
+    / "03_model_evidence"
+    / "step4b_forecasting"
+    / "sarima"
+    / "targeted"
     / "DemandIQ_Step4B_SARIMA_Targeted_Fold_Metrics.csv"
 )
 
 SUMMARY_OUTPUT = (
     PROJECT_DIR
+    / "03_model_evidence"
+    / "step4b_forecasting"
+    / "sarima"
+    / "targeted"
     / "DemandIQ_Step4B_SARIMA_Targeted_Summary.csv"
 )
 
 FIT_QA_OUTPUT = (
     PROJECT_DIR
+    / "03_model_evidence"
+    / "step4b_forecasting"
+    / "sarima"
+    / "targeted"
     / "DemandIQ_Step4B_SARIMA_Targeted_Fit_QA.csv"
 )
 
 COMPARISON_OUTPUT = (
     PROJECT_DIR
+    / "03_model_evidence"
+    / "step4b_forecasting"
+    / "sarima"
+    / "targeted"
     / "DemandIQ_Step4B_Targeted_Model_Comparison.csv"
 )
 
