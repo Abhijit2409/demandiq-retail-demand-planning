@@ -1,0 +1,5 @@
+window,sold_units,reconstructed_units,true_units,reconstructed_vs_sold_pct,true_vs_sold_pct,share_of_true_gap_recovered,basis
+"S&OE window, last year (Jun 30-Sep 22, 2025)",34264.0232,34387.5862,34415,0.3606,0.4406,0.8184,PLANNER_VIEW; true units are SIMULATION_TRUTH
+"Peak build and season (Oct 6, 2025-Jan 26, 2026)",69613.0553,77254.1558,80384,10.9765,15.4726,0.7094,PLANNER_VIEW; true units are SIMULATION_TRUTH
+"Dec-Feb, PY2026",46469.8221,56245.3929,59509,21.0364,28.0595,0.7497,PLANNER_VIEW; true units are SIMULATION_TRUTH
+Full plan year PY2026,165335.3947,177877.6485,181126,7.5859,9.5507,0.7943,PLANNER_VIEW; true units are SIMULATION_TRUTH

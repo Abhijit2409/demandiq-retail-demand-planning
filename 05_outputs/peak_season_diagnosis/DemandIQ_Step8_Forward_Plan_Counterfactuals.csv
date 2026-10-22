@@ -1,0 +1,8 @@
+case,input_changed,compared_with,demand_13w_units,demand_vs_published_pct,p1_escalate_series,p2_protect_series,balanced_series,series_whose_action_changes,escalated_series,basis
+Published: champion ETS forecast,none,Published: champion ETS forecast,36434.66,0.0,3,6,0,0,"APS-001 WHOLESALE, CTS-001 RETAIL, IMH-001 WHOLESALE",PLANNER_VIEW
+Mild weather scenario,weather,Published: champion ETS forecast,36036.1,-1.0939,3,6,0,0,"APS-001 WHOLESALE, CTS-001 RETAIL, IMH-001 WHOLESALE",PLANNER_VIEW
+Severe weather scenario,weather,Published: champion ETS forecast,36677.247,0.6658,3,6,0,0,"APS-001 WHOLESALE, CTS-001 RETAIL, IMH-001 WHOLESALE",PLANNER_VIEW
+Seasonal naive on reconstructed demand,forecast model,Published: champion ETS forecast,34387.5862,-5.6185,0,9,0,3,,PLANNER_VIEW
+Seasonal naive on raw sales (no stockout correction),stockout correction,Seasonal naive on reconstructed demand,34264.0232,-5.9576,0,9,0,0,,PLANNER_VIEW
+Seasonal two-year average,forecast model,Published: champion ETS forecast,33860.6346,-7.0648,1,8,0,2,APS-001 WHOLESALE,PLANNER_VIEW
+"Published forecast, last year's replenishment added to supply",supply view,Published: champion ETS forecast,36434.66,0.0,0,6,3,6,,PLANNER_VIEW

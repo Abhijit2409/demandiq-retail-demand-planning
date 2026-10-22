@@ -1,0 +1,37 @@
+metric,value,unit,basis
+"Dec-Feb fill, PY2022",85.8531,%,SIMULATION_TRUTH
+"Dec-Feb fill, PY2026",78.0887,%,SIMULATION_TRUTH
+"Dec-Feb fill on reconstructed demand, PY2026",82.6198,%,PLANNER_VIEW
+"Annual fill, PY2026",91.282,%,SIMULATION_TRUTH
+"Lost revenue, PY2022",3419337.03,CAD,SIMULATION_TRUTH
+"Lost revenue, PY2026",6652337.58,CAD,SIMULATION_TRUTH
+"Lost revenue as share of net revenue, PY2026",9.1065,%,SIMULATION_TRUTH
+Share of PY2026 lost units in Dec-Feb,82.5755,%,SIMULATION_TRUTH
+"Buy basis vs prior-year true demand, PY2023",-4.9854,%,SIMULATION_TRUTH
+"Buy basis vs prior-year true demand, PY2026",-8.9415,%,SIMULATION_TRUTH
+"Buy basis vs prior-year reconstructed demand, PY2026",-9.0206,%,PLANNER_VIEW
+Timing share of PY2026 lost units,58.7772,%,SIMULATION_TRUTH
+"Chase trigger rate, lowest-loss quartile",75.4902,%,PLANNER_VIEW
+"Chase trigger rate, highest-loss quartile",77.2277,%,PLANNER_VIEW
+"Chase units per cell-year, lowest-loss quartile",93.1225,units,PLANNER_VIEW
+"Chase units per cell-year, highest-loss quartile",118.605,units,PLANNER_VIEW
+"Peak lost units per cell-year, highest-loss quartile",328.0351,units,SIMULATION_TRUTH
+"Median first chase trigger, plan week",11.5,week,PLANNER_VIEW
+"Median first peak stockout, plan week",27.0,week,PLANNER_VIEW
+"Unused chase capacity, PY2026",5402.8627,units,PLANNER_VIEW
+"Peak lost units, PY2026",13039.1779,units,SIMULATION_TRUTH
+"Top 20 of 81 cells, share of PY2026 lost revenue",60.1988,%,SIMULATION_TRUTH
+Rank correlation: lost revenue vs stockout days,0.8995,rho,PLANNER_VIEW
+Top-20 cells by lost revenue also top 20 by stockout days,15.0,of 20,PLANNER_VIEW
+Series changed: stockout correction (naive on sales vs reconstructed),0.0,of 9,PLANNER_VIEW
+"Reconstruction uplift, S&OE window last year",0.3606,%,PLANNER_VIEW
+"Reconstruction uplift, Dec-Feb PY2026",21.0364,%,PLANNER_VIEW
+Share of true Dec-Feb gap recovered by reconstruction,74.9708,%,SIMULATION_TRUTH
+Series changed: weather scenario,0.0,of 9,PLANNER_VIEW
+Series changed: seasonal naive instead of ETS,3.0,of 9,PLANNER_VIEW
+Series changed: replenishment added to supply,6.0,of 9,PLANNER_VIEW
+Corrected queue: ESCALATE,0.0,series,PLANNER_VIEW
+Corrected queue: WATCH,1.0,series,PLANNER_VIEW
+Launch buy vs latent demand,21.2933,%,SIMULATION_TRUTH
+Launch ECOM lost units with reserve idle,158.8,units,SIMULATION_TRUTH
+Launch reserve units,991.1,units,PLANNER_VIEW
